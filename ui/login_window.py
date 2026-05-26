@@ -1,117 +1,67 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
-    QLabel, QPushButton, QCheckBox, QGraphicsDropShadowEffect
+    QLabel, QPushButton, QCheckBox, QGraphicsDropShadowEffect, QMenu
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QPoint
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QAction
 from utils.i18n import I18n
 from utils.user_manager import UserManager
-
-
-_INPUT_STYLE = """
-    QLineEdit {
-        font-size: 14px;
-        padding: 10px 16px;
-        border-radius: 10px;
-        border: 1.5px solid #e2e8f0;
-        background-color: #f7fafc;
-    }
-    QLineEdit:focus {
-        border: 2px solid #667eea;
-        background-color: #ffffff;
-        padding: 9px 15px;
-    }
-"""
-
-_PRIMARY_BTN_STYLE = """
-    QPushButton {
-        background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-            stop:0 #667eea, stop:1 #764ba2);
-        color: white;
-        border: none;
-        font-weight: bold;
-        font-size: 15px;
-        padding: 12px 32px;
-        border-radius: 10px;
-    }
-    QPushButton:hover {
-        background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-            stop:0 #5a67d8, stop:1 #6b46a0);
-    }
-    QPushButton:pressed {
-        background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-            stop:0 #4c51bf, stop:1 #553c9a);
-    }
-"""
-
-_LINK_BTN_STYLE = """
-    QPushButton {
-        border: none;
-        background: transparent;
-        color: #667eea;
-        font-size: 12px;
-        font-weight: bold;
-        padding: 0;
-    }
-    QPushButton:hover {
-        color: #5a67d8;
-    }
-"""
-
-_LABEL_STYLE = "font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 4px;"
-_ERROR_STYLE = """
-    QLabel {
-        color: #e53e3e;
-        font-size: 12px;
-        background-color: #fed7d7;
-        border-radius: 6px;
-        padding: 8px;
-    }
-"""
-_SUCCESS_STYLE = """
-    QLabel {
-        color: #2e7d32;
-        font-size: 12px;
-        background-color: #e8f5e9;
-        border-radius: 6px;
-        padding: 8px;
-    }
-"""
+from themes.theme_manager import ThemeManager
 
 
 def _create_card():
     card = QWidget()
     card.setObjectName("login_card")
     card.setFixedWidth(400)
-    card.setStyleSheet("""
-        QWidget#login_card {
-            background-color: rgba(255, 255, 255, 0.97);
-            border-radius: 16px;
-        }
-    """)
+    return card
+
+
+def _apply_card_shadow(card):
     shadow = QGraphicsDropShadowEffect(card)
     shadow.setBlurRadius(40)
     shadow.setColor(QColor(0, 0, 0, 30))
     shadow.setOffset(0, 8)
     card.setGraphicsEffect(shadow)
-    return card
 
 
 def _create_icon_label(text: str):
     icon_label = QLabel(text)
     icon_label.setFixedSize(72, 72)
     icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    icon_label.setStyleSheet("""
-        QLabel {
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 #667eea, stop:1 #764ba2);
-            color: white;
-            border-radius: 36px;
-            font-size: 32px;
-            font-weight: bold;
-        }
-    """)
     return icon_label
+
+
+def _create_theme_button():
+    i18n = I18n.instance()
+    btn = QPushButton(i18n.tr("nav_skin"))
+    btn.setObjectName("btn_theme")
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setFixedHeight(32)
+    return btn
+
+
+def _show_theme_menu(btn):
+    i18n = I18n.instance()
+    menu = QMenu(btn)
+    theme_mgr = ThemeManager.instance()
+
+    themes = [
+        ("light", i18n.tr("skin_light")),
+        ("dark", i18n.tr("skin_dark")),
+        ("system", i18n.tr("skin_system")),
+        ("eye_care", i18n.tr("skin_eye_care")),
+    ]
+
+    for theme_key, theme_label in themes:
+        action = QAction(theme_label, menu)
+        action.setCheckable(True)
+        action.setChecked(theme_mgr.current_theme_name() == theme_key)
+        action.triggered.connect(lambda checked, k=theme_key: theme_mgr.set_theme(k))
+        menu.addAction(action)
+
+    pos = btn.mapToGlobal(btn.rect().bottomRight())
+    pos.setX(pos.x() - menu.sizeHint().width())
+    menu.exec(pos)
 
 
 class LoginWindow(QWidget):
@@ -124,12 +74,22 @@ class LoginWindow(QWidget):
         self.setWindowTitle(I18n.instance().tr("login_title"))
         self.setFixedSize(480, 600)
         self._init_ui()
+        self._apply_theme()
         I18n.instance().language_changed.connect(self._retranslate)
+        ThemeManager.instance().theme_changed.connect(self._apply_theme)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(0, 12, 16, 0)
+        top_bar.addStretch()
+        self.theme_btn = _create_theme_button()
+        self.theme_btn.clicked.connect(lambda: _show_theme_menu(self.theme_btn))
+        top_bar.addWidget(self.theme_btn)
+        layout.addLayout(top_bar)
 
         layout.addStretch(1)
 
@@ -152,33 +112,28 @@ class LoginWindow(QWidget):
         title_font = QFont("Microsoft YaHei", 20)
         title_font.setBold(True)
         self.title_label.setFont(title_font)
-        self.title_label.setStyleSheet("color: #2d3748;")
         card_layout.addWidget(self.title_label)
 
         card_layout.addSpacing(6)
 
         self.subtitle_label = QLabel(I18n.instance().tr("login_subtitle"))
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.subtitle_label.setStyleSheet("color: #718096; font-size: 13px;")
         card_layout.addWidget(self.subtitle_label)
 
         card_layout.addSpacing(28)
 
         self.username_label = QLabel(I18n.instance().tr("username"))
-        self.username_label.setStyleSheet(_LABEL_STYLE)
         card_layout.addWidget(self.username_label)
         card_layout.addSpacing(4)
 
         self.username_edit = QLineEdit()
         self.username_edit.setPlaceholderText(I18n.instance().tr("username_placeholder"))
         self.username_edit.setMinimumHeight(44)
-        self.username_edit.setStyleSheet(_INPUT_STYLE)
         card_layout.addWidget(self.username_edit)
 
         card_layout.addSpacing(16)
 
         self.password_label = QLabel(I18n.instance().tr("password"))
-        self.password_label.setStyleSheet(_LABEL_STYLE)
         card_layout.addWidget(self.password_label)
         card_layout.addSpacing(4)
 
@@ -186,32 +141,18 @@ class LoginWindow(QWidget):
         self.password_edit.setPlaceholderText(I18n.instance().tr("password_placeholder"))
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_edit.setMinimumHeight(44)
-        self.password_edit.setStyleSheet(_INPUT_STYLE)
         card_layout.addWidget(self.password_edit)
 
         card_layout.addSpacing(14)
 
         options_row = QHBoxLayout()
         self.remember_check = QCheckBox(I18n.instance().tr("remember_password"))
-        self.remember_check.setStyleSheet("font-size: 12px; color: #718096;")
         options_row.addWidget(self.remember_check)
         options_row.addStretch()
 
         self.forgot_btn = QPushButton(I18n.instance().tr("forgot_password"))
-        self.forgot_btn.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background: transparent;
-                color: #667eea;
-                font-size: 12px;
-                padding: 0;
-            }
-            QPushButton:hover {
-                color: #5a67d8;
-                text-decoration: underline;
-            }
-        """)
         self.forgot_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.forgot_btn.setObjectName("btn_forgot")
         options_row.addWidget(self.forgot_btn)
         card_layout.addLayout(options_row)
 
@@ -221,20 +162,17 @@ class LoginWindow(QWidget):
         self.login_btn.setObjectName("btn_login")
         self.login_btn.setMinimumHeight(48)
         self.login_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.login_btn.setStyleSheet(_PRIMARY_BTN_STYLE)
         card_layout.addWidget(self.login_btn)
 
         card_layout.addSpacing(12)
 
         self.error_label = QLabel("")
         self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.error_label.setStyleSheet(_ERROR_STYLE)
         self.error_label.setVisible(False)
         card_layout.addWidget(self.error_label)
 
         self.success_label = QLabel("")
         self.success_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.success_label.setStyleSheet(_SUCCESS_STYLE)
         self.success_label.setVisible(False)
         card_layout.addWidget(self.success_label)
 
@@ -243,10 +181,9 @@ class LoginWindow(QWidget):
         footer_row = QHBoxLayout()
         footer_row.addStretch()
         self.no_account_label = QLabel(I18n.instance().tr("no_account"))
-        self.no_account_label.setStyleSheet("color: #a0aec0; font-size: 12px;")
         footer_row.addWidget(self.no_account_label)
         self.register_btn = QPushButton(I18n.instance().tr("register"))
-        self.register_btn.setStyleSheet(_LINK_BTN_STYLE)
+        self.register_btn.setObjectName("btn_link")
         self.register_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         footer_row.addWidget(self.register_btn)
         footer_row.addStretch()
@@ -267,6 +204,76 @@ class LoginWindow(QWidget):
 
         self._card = card
 
+    def _apply_theme(self, _stylesheet=None):
+        c = ThemeManager.instance().get_colors()
+
+        _apply_card_shadow(self._card)
+
+        self.icon_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {c.primary}, stop:1 {c.primary_pressed});
+                color: {c.text_on_primary};
+                border-radius: 36px;
+                font-size: 32px;
+                font-weight: bold;
+            }}
+        """)
+
+        self.title_label.setStyleSheet(f"color: {c.text_primary};")
+        self.subtitle_label.setStyleSheet(f"color: {c.text_secondary}; font-size: 13px;")
+        self.username_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {c.text_secondary};")
+        self.password_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {c.text_secondary};")
+
+        self.remember_check.setStyleSheet(f"font-size: 12px; color: {c.text_secondary};")
+        self.forgot_btn.setStyleSheet(f"""
+            QPushButton {{
+                border: none;
+                background: transparent;
+                color: {c.primary};
+                font-size: 12px;
+                padding: 0;
+            }}
+            QPushButton:hover {{
+                color: {c.primary_pressed};
+                text-decoration: underline;
+            }}
+        """)
+
+        self.error_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c.error};
+                font-size: 12px;
+                background-color: {c.error_bg};
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+        self.success_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c.success};
+                font-size: 12px;
+                background-color: {c.success_bg};
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+
+        self.no_account_label.setStyleSheet(f"color: {c.text_secondary}; font-size: 12px;")
+        self.register_btn.setStyleSheet(f"""
+            QPushButton {{
+                border: none;
+                background: transparent;
+                color: {c.primary};
+                font-size: 12px;
+                font-weight: bold;
+                padding: 0;
+            }}
+            QPushButton:hover {{
+                color: {c.primary_pressed};
+            }}
+        """)
+
     def show_success_message(self, msg: str):
         self.error_label.setVisible(False)
         self.success_label.setText(msg)
@@ -281,11 +288,7 @@ class LoginWindow(QWidget):
         end_pos = card.pos()
         start_pos = QPoint(end_pos.x(), end_pos.y() + 40)
 
-        shadow = QGraphicsDropShadowEffect(card)
-        shadow.setBlurRadius(40)
-        shadow.setColor(QColor(0, 0, 0, 30))
-        shadow.setOffset(0, 8)
-        card.setGraphicsEffect(shadow)
+        _apply_card_shadow(card)
 
         pos_anim = QPropertyAnimation(card, b"pos")
         pos_anim.setDuration(600)
@@ -355,6 +358,7 @@ class LoginWindow(QWidget):
         self.login_btn.setText(i18n.tr("login"))
         self.no_account_label.setText(i18n.tr("no_account"))
         self.register_btn.setText(i18n.tr("register"))
+        self.theme_btn.setText(i18n.tr("nav_skin"))
 
 
 class RegisterWindow(QWidget):
@@ -367,12 +371,22 @@ class RegisterWindow(QWidget):
         self.setWindowTitle(I18n.instance().tr("register_title"))
         self.setFixedSize(480, 680)
         self._init_ui()
+        self._apply_theme()
         I18n.instance().language_changed.connect(self._retranslate)
+        ThemeManager.instance().theme_changed.connect(self._apply_theme)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(0, 12, 16, 0)
+        top_bar.addStretch()
+        self.theme_btn = _create_theme_button()
+        self.theme_btn.clicked.connect(lambda: _show_theme_menu(self.theme_btn))
+        top_bar.addWidget(self.theme_btn)
+        layout.addLayout(top_bar)
 
         layout.addStretch(1)
 
@@ -395,34 +409,29 @@ class RegisterWindow(QWidget):
         title_font = QFont("Microsoft YaHei", 20)
         title_font.setBold(True)
         self.title_label.setFont(title_font)
-        self.title_label.setStyleSheet("color: #2d3748;")
         card_layout.addWidget(self.title_label)
 
         card_layout.addSpacing(6)
 
         self.subtitle_label = QLabel(I18n.instance().tr("register_subtitle"))
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.subtitle_label.setStyleSheet("color: #718096; font-size: 13px;")
         card_layout.addWidget(self.subtitle_label)
 
         card_layout.addSpacing(28)
 
         self.username_label = QLabel(I18n.instance().tr("username"))
-        self.username_label.setStyleSheet(_LABEL_STYLE)
         card_layout.addWidget(self.username_label)
         card_layout.addSpacing(4)
 
         self.username_edit = QLineEdit()
         self.username_edit.setPlaceholderText(I18n.instance().tr("username_placeholder"))
         self.username_edit.setMinimumHeight(44)
-        self.username_edit.setStyleSheet(_INPUT_STYLE)
         self.username_edit.setMaxLength(20)
         card_layout.addWidget(self.username_edit)
 
         card_layout.addSpacing(16)
 
         self.password_label = QLabel(I18n.instance().tr("password"))
-        self.password_label.setStyleSheet(_LABEL_STYLE)
         card_layout.addWidget(self.password_label)
         card_layout.addSpacing(4)
 
@@ -430,14 +439,12 @@ class RegisterWindow(QWidget):
         self.password_edit.setPlaceholderText(I18n.instance().tr("password_placeholder"))
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_edit.setMinimumHeight(44)
-        self.password_edit.setStyleSheet(_INPUT_STYLE)
         self.password_edit.setMaxLength(32)
         card_layout.addWidget(self.password_edit)
 
         card_layout.addSpacing(16)
 
         self.confirm_password_label = QLabel(I18n.instance().tr("confirm_password"))
-        self.confirm_password_label.setStyleSheet(_LABEL_STYLE)
         card_layout.addWidget(self.confirm_password_label)
         card_layout.addSpacing(4)
 
@@ -445,7 +452,6 @@ class RegisterWindow(QWidget):
         self.confirm_password_edit.setPlaceholderText(I18n.instance().tr("confirm_password_placeholder"))
         self.confirm_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.confirm_password_edit.setMinimumHeight(44)
-        self.confirm_password_edit.setStyleSheet(_INPUT_STYLE)
         self.confirm_password_edit.setMaxLength(32)
         card_layout.addWidget(self.confirm_password_edit)
 
@@ -455,14 +461,12 @@ class RegisterWindow(QWidget):
         self.register_btn.setObjectName("btn_register")
         self.register_btn.setMinimumHeight(48)
         self.register_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.register_btn.setStyleSheet(_PRIMARY_BTN_STYLE)
         card_layout.addWidget(self.register_btn)
 
         card_layout.addSpacing(12)
 
         self.error_label = QLabel("")
         self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.error_label.setStyleSheet(_ERROR_STYLE)
         self.error_label.setVisible(False)
         self.error_label.setWordWrap(True)
         card_layout.addWidget(self.error_label)
@@ -472,10 +476,9 @@ class RegisterWindow(QWidget):
         footer_row = QHBoxLayout()
         footer_row.addStretch()
         self.have_account_label = QLabel(I18n.instance().tr("have_account"))
-        self.have_account_label.setStyleSheet("color: #a0aec0; font-size: 12px;")
         footer_row.addWidget(self.have_account_label)
         self.back_login_btn = QPushButton(I18n.instance().tr("back_to_login"))
-        self.back_login_btn.setStyleSheet(_LINK_BTN_STYLE)
+        self.back_login_btn.setObjectName("btn_link")
         self.back_login_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         footer_row.addWidget(self.back_login_btn)
         footer_row.addStretch()
@@ -497,6 +500,53 @@ class RegisterWindow(QWidget):
 
         self._card = card
 
+    def _apply_theme(self, _stylesheet=None):
+        c = ThemeManager.instance().get_colors()
+
+        _apply_card_shadow(self._card)
+
+        self.icon_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {c.primary}, stop:1 {c.primary_pressed});
+                color: {c.text_on_primary};
+                border-radius: 36px;
+                font-size: 32px;
+                font-weight: bold;
+            }}
+        """)
+
+        self.title_label.setStyleSheet(f"color: {c.text_primary};")
+        self.subtitle_label.setStyleSheet(f"color: {c.text_secondary}; font-size: 13px;")
+        self.username_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {c.text_secondary};")
+        self.password_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {c.text_secondary};")
+        self.confirm_password_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {c.text_secondary};")
+
+        self.error_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c.error};
+                font-size: 12px;
+                background-color: {c.error_bg};
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+
+        self.have_account_label.setStyleSheet(f"color: {c.text_secondary}; font-size: 12px;")
+        self.back_login_btn.setStyleSheet(f"""
+            QPushButton {{
+                border: none;
+                background: transparent;
+                color: {c.primary};
+                font-size: 12px;
+                font-weight: bold;
+                padding: 0;
+            }}
+            QPushButton:hover {{
+                color: {c.primary_pressed};
+            }}
+        """)
+
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(50, self._animate_entrance)
@@ -506,11 +556,7 @@ class RegisterWindow(QWidget):
         end_pos = card.pos()
         start_pos = QPoint(end_pos.x(), end_pos.y() + 40)
 
-        shadow = QGraphicsDropShadowEffect(card)
-        shadow.setBlurRadius(40)
-        shadow.setColor(QColor(0, 0, 0, 30))
-        shadow.setOffset(0, 8)
-        card.setGraphicsEffect(shadow)
+        _apply_card_shadow(card)
 
         pos_anim = QPropertyAnimation(card, b"pos")
         pos_anim.setDuration(600)
@@ -591,3 +637,4 @@ class RegisterWindow(QWidget):
         self.register_btn.setText(i18n.tr("register_btn"))
         self.have_account_label.setText(i18n.tr("have_account"))
         self.back_login_btn.setText(i18n.tr("back_to_login"))
+        self.theme_btn.setText(i18n.tr("nav_skin"))

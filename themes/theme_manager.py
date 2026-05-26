@@ -32,7 +32,7 @@ class ThemeColors:
 
 def generate_stylesheet(c: ThemeColors) -> str:
     return f"""
-        QMainWindow, QWidget#LoginWindow {{
+        QMainWindow, QWidget#LoginWindow, QWidget#RegisterWindow {{
             background-color: {c.page_background};
         }}
         QWidget {{
@@ -159,6 +159,40 @@ def generate_stylesheet(c: ThemeColors) -> str:
         }}
         QPushButton#btn_login:pressed {{
             background-color: {c.primary_hover};
+        }}
+        QPushButton#btn_register {{
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                stop:0 {c.primary}, stop:1 {c.primary_pressed});
+            color: {c.text_on_primary};
+            border: none;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 12px 32px;
+            border-radius: 10px;
+            min-height: 20px;
+        }}
+        QPushButton#btn_register:hover {{
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                stop:0 {c.primary_pressed}, stop:1 {c.primary_hover});
+        }}
+        QPushButton#btn_register:pressed {{
+            background-color: {c.primary_hover};
+        }}
+        QPushButton#btn_theme {{
+            border: none;
+            background-color: transparent;
+            color: {c.text_secondary};
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 6px;
+        }}
+        QPushButton#btn_theme:hover {{
+            background-color: {c.primary_surface};
+            color: {c.primary};
+        }}
+        QWidget#login_card {{
+            background-color: {c.card_background};
+            border-radius: 16px;
         }}
         QLineEdit {{
             padding: 7px 12px;

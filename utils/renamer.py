@@ -6,6 +6,7 @@ class Renamer:
     MODE_PREFIX_SUFFIX = 0
     MODE_SEQUENTIAL = 1
     MODE_REPLACE = 2
+    MODE_DIRECT_INPUT = 3
 
     def __init__(self):
         self.mode = self.MODE_PREFIX_SUFFIX
@@ -17,6 +18,7 @@ class Renamer:
         self.find_text = ""
         self.replace_text = ""
         self.case_sensitive = True
+        self.direct_name = ""
 
     def generate_new_name(self, original: str, index: int) -> str:
         name, ext = os.path.splitext(original)
@@ -36,5 +38,10 @@ class Renamer:
             else:
                 new_name = re.sub(re.escape(self.find_text), self.replace_text, name, flags=re.IGNORECASE)
             return f"{new_name}{ext}"
+
+        elif self.mode == self.MODE_DIRECT_INPUT:
+            if not self.direct_name:
+                return original
+            return f"{self.direct_name}{ext}"
 
         return original

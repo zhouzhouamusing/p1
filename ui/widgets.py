@@ -81,6 +81,8 @@ class OutputLocationSelector(QGroupBox):
         is_custom = (id_ == 1)
         self.custom_path_edit.setEnabled(is_custom)
         self.custom_browse_btn.setEnabled(is_custom)
+        if not is_custom:
+            self.custom_path_edit.clear()
 
     def _browse_custom(self):
         folder = QFileDialog.getExistingDirectory(self, I18n.instance().tr("output_custom_placeholder"))

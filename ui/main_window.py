@@ -164,8 +164,16 @@ class BatchRenamerWindow(QMainWindow):
         QTimer.singleShot(50, self._animate_entrance)
 
     def _animate_entrance(self):
-        from utils.animations import fade_in
-        fade_in(self.centralWidget(), duration=400)
+        from utils.animations import stagger_fade_in
+        sections = [
+            self.folder_selector,
+            self.drag_hint_label,
+            self.file_filter,
+            self.mode_panel,
+            self.output_location,
+            self.preview_table,
+        ]
+        stagger_fade_in(sections, interval=70, duration=350)
 
     def _check_warnings(self):
         i18n = I18n.instance()

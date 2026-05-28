@@ -87,7 +87,9 @@ class FolderSelector(QGroupBox):
 
     def _setup_layout(self):
         v = QVBoxLayout(self)
+        v.setSpacing(8)
         h = QHBoxLayout()
+        h.setSpacing(6)
         self._path_label = QLabel(I18n.instance().tr("path_label"))
         h.addWidget(self._path_label)
         h.addWidget(self.folder_path_edit)
@@ -121,7 +123,7 @@ class OutputLocationSelector(QGroupBox):
 
     def _setup_ui(self):
         layout = QHBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
 
         self.radio_original = QRadioButton(I18n.instance().tr("output_original_dir"))
         self.radio_custom = QRadioButton(I18n.instance().tr("output_custom_dir"))
@@ -186,10 +188,12 @@ class FileFilterPanel(QGroupBox):
     def _setup_ui(self):
         i18n = I18n.instance()
         layout = QGridLayout(self)
-        layout.setSpacing(8)
+        layout.setHorizontalSpacing(6)
+        layout.setVerticalSpacing(8)
         layout.setContentsMargins(12, 16, 12, 12)
 
         self._label_ext = QLabel(i18n.tr("filter_extension"))
+        self._label_ext.setFixedWidth(90)
         self.ext_edit = QLineEdit()
         self.ext_edit.setPlaceholderText(i18n.tr("filter_extension_placeholder"))
         layout.addWidget(self._label_ext, 0, 0)
@@ -212,9 +216,10 @@ class FileFilterPanel(QGroupBox):
         self.size_max_spin.setSpecialValueText("-")
 
         size_row = QHBoxLayout()
+        size_row.setSpacing(6)
         size_row.addWidget(self._label_size_min)
         size_row.addWidget(self.size_min_spin)
-        size_row.addSpacing(16)
+        size_row.addSpacing(12)
         size_row.addWidget(self._label_size_max)
         size_row.addWidget(self.size_max_spin)
         size_row.addStretch()
@@ -235,9 +240,10 @@ class FileFilterPanel(QGroupBox):
         self.date_to_edit.setFixedWidth(130)
 
         date_row = QHBoxLayout()
+        date_row.setSpacing(6)
         date_row.addWidget(self._label_date_from)
         date_row.addWidget(self.date_from_edit)
-        date_row.addSpacing(16)
+        date_row.addSpacing(12)
         date_row.addWidget(self._label_date_to)
         date_row.addWidget(self.date_to_edit)
         date_row.addStretch()
@@ -444,7 +450,7 @@ class RenameModePanel(QGroupBox):
     def _setup_layout(self):
         i18n = I18n.instance()
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(10)
+        main_layout.setSpacing(8)
 
         # Mode selector row (two rows of 4 radio buttons)
         mode_row1 = QHBoxLayout()
@@ -475,8 +481,13 @@ class RenameModePanel(QGroupBox):
         # Parameters area
         self._params_widget = QWidget()
         params_grid = QGridLayout(self._params_widget)
-        params_grid.setSpacing(8)
-        params_grid.setContentsMargins(0, 0, 0, 0)
+        params_grid.setHorizontalSpacing(6)
+        params_grid.setVerticalSpacing(8)
+        params_grid.setContentsMargins(0, 4, 0, 0)
+        params_grid.setColumnMinimumWidth(0, 80)
+        params_grid.setColumnStretch(1, 1)
+        params_grid.setColumnStretch(2, 0)
+        params_grid.setColumnStretch(3, 0)
 
         # Mode 0: Prefix/Suffix
         self._label_prefix = QLabel(i18n.tr("prefix"))
@@ -494,6 +505,7 @@ class RenameModePanel(QGroupBox):
         self._label_digits = QLabel(i18n.tr("digits"))
         digits_layout = QHBoxLayout()
         digits_layout.setContentsMargins(0, 0, 0, 0)
+        digits_layout.setSpacing(6)
         digits_layout.addWidget(self._label_digits)
         digits_layout.addWidget(self.digits_spin)
         digits_layout.addStretch()
@@ -552,12 +564,15 @@ class RenameModePanel(QGroupBox):
         params_grid.addWidget(self.seq_enh_suffix_edit, 17, 1, 1, 3)
 
         seq_enh_row = QHBoxLayout()
+        seq_enh_row.setSpacing(6)
         self._label_seq_enh_start = QLabel(i18n.tr("seq_enh_start"))
         seq_enh_row.addWidget(self._label_seq_enh_start)
         seq_enh_row.addWidget(self.seq_enh_start_spin)
+        seq_enh_row.addSpacing(10)
         self._label_seq_enh_step = QLabel(i18n.tr("seq_enh_step"))
         seq_enh_row.addWidget(self._label_seq_enh_step)
         seq_enh_row.addWidget(self.seq_enh_step_spin)
+        seq_enh_row.addSpacing(10)
         self._label_seq_enh_digits = QLabel(i18n.tr("seq_enh_digits"))
         seq_enh_row.addWidget(self._label_seq_enh_digits)
         seq_enh_row.addWidget(self.seq_enh_digits_spin)
@@ -567,6 +582,7 @@ class RenameModePanel(QGroupBox):
         params_grid.addWidget(self._seq_enh_row_widget, 18, 0, 1, 4)
 
         seq_enh_fmt_row = QHBoxLayout()
+        seq_enh_fmt_row.setSpacing(6)
         self._label_seq_enh_format = QLabel(i18n.tr("seq_enh_format"))
         seq_enh_fmt_row.addWidget(self._label_seq_enh_format)
         seq_enh_fmt_row.addWidget(self.seq_enh_format_combo)

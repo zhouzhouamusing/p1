@@ -2,15 +2,18 @@ from PyQt6.QtWidgets import (
     QGroupBox, QHBoxLayout, QVBoxLayout, QGridLayout,
     QPushButton, QLineEdit, QLabel, QSpinBox, QRadioButton,
     QButtonGroup, QCheckBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QWidget, QDialog, QFileDialog
+    QHeaderView, QWidget, QDialog, QFileDialog, QComboBox,
+    QScrollArea, QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QColor, QFont
 from themes.theme_manager import ThemeManager
 from utils.i18n import I18n
 
 
 class FolderSelector(QGroupBox):
+    include_subfolders_changed = pyqtSignal(bool)
+
     def __init__(self):
         super().__init__(I18n.instance().tr("folder_select"))
         self.folder_path_edit = QLineEdit()
@@ -18,15 +21,22 @@ class FolderSelector(QGroupBox):
         self.folder_path_edit.setPlaceholderText(I18n.instance().tr("folder_placeholder"))
         self.browse_btn = QPushButton(I18n.instance().tr("browse"))
         self.browse_btn.setFixedWidth(90)
+        self.include_subfolders_check = QCheckBox(I18n.instance().tr("include_subfolders"))
         self._setup_layout()
         I18n.instance().language_changed.connect(self._retranslate)
+        self.include_subfolders_check.stateChanged.connect(
+            lambda state: self.include_subfolders_changed.emit(state == Qt.CheckState.Checked.value)
+        )
 
     def _setup_layout(self):
-        h = QHBoxLayout(self)
+        v = QVBoxLayout(self)
+        h = QHBoxLayout()
         self._path_label = QLabel(I18n.instance().tr("path_label"))
         h.addWidget(self._path_label)
         h.addWidget(self.folder_path_edit)
         h.addWidget(self.browse_btn)
+        v.addLayout(h)
+        v.addWidget(self.include_subfolders_check)
 
     def get_folder_path(self) -> str:
         return self.folder_path_edit.text()
@@ -34,12 +44,16 @@ class FolderSelector(QGroupBox):
     def set_folder_path(self, path: str) -> None:
         self.folder_path_edit.setText(path)
 
+    def is_include_subfolders(self) -> bool:
+        return self.include_subfolders_check.isChecked()
+
     def _retranslate(self):
         i18n = I18n.instance()
         self.setTitle(i18n.tr("folder_select"))
         self.folder_path_edit.setPlaceholderText(i18n.tr("folder_placeholder"))
         self.browse_btn.setText(i18n.tr("browse"))
         self._path_label.setText(i18n.tr("path_label"))
+        self.include_subfolders_check.setText(i18n.tr("include_subfolders"))
 
 
 class OutputLocationSelector(QGroupBox):
@@ -105,6 +119,8 @@ class OutputLocationSelector(QGroupBox):
 
 
 class RenameModePanel(QGroupBox):
+    mode_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__(I18n.instance().tr("rename_rules"))
         self.mode_group = QButtonGroup(self)
@@ -112,6 +128,7 @@ class RenameModePanel(QGroupBox):
         self._setup_layout()
         self._update_visibility()
         self.mode_group.idClicked.connect(self._update_visibility)
+        self.mode_group.idClicked.connect(lambda: self.mode_changed.emit())
         I18n.instance().language_changed.connect(self._retranslate)
 
     def _init_widgets(self):
@@ -120,18 +137,28 @@ class RenameModePanel(QGroupBox):
         self.radio_sequential = QRadioButton(i18n.tr("mode_sequential"))
         self.radio_replace = QRadioButton(i18n.tr("mode_replace"))
         self.radio_direct_input = QRadioButton(i18n.tr("mode_direct_input"))
+        self.radio_regex = QRadioButton(i18n.tr("mode_regex"))
+        self.radio_datetime = QRadioButton(i18n.tr("mode_datetime"))
+        self.radio_attributes = QRadioButton(i18n.tr("mode_attributes"))
+        self.radio_seq_enhanced = QRadioButton(i18n.tr("mode_seq_enhanced"))
         self.radio_prefix_suffix.setChecked(True)
 
         self.mode_group.addButton(self.radio_prefix_suffix, 0)
         self.mode_group.addButton(self.radio_sequential, 1)
         self.mode_group.addButton(self.radio_replace, 2)
         self.mode_group.addButton(self.radio_direct_input, 3)
+        self.mode_group.addButton(self.radio_regex, 4)
+        self.mode_group.addButton(self.radio_datetime, 5)
+        self.mode_group.addButton(self.radio_attributes, 6)
+        self.mode_group.addButton(self.radio_seq_enhanced, 7)
 
+        # Mode 0: Prefix/Suffix
         self.prefix_edit = QLineEdit()
         self.prefix_edit.setPlaceholderText(i18n.tr("prefix_placeholder"))
         self.suffix_edit = QLineEdit()
         self.suffix_edit.setPlaceholderText(i18n.tr("suffix_placeholder"))
 
+        # Mode 1: Sequential
         self.start_num_spin = QSpinBox()
         self.start_num_spin.setMinimum(0)
         self.start_num_spin.setMaximum(99999)
@@ -147,37 +174,123 @@ class RenameModePanel(QGroupBox):
         self.seq_prefix_edit = QLineEdit()
         self.seq_prefix_edit.setPlaceholderText(i18n.tr("seq_prefix_placeholder"))
 
+        # Mode 2: Find & Replace
         self.find_edit = QLineEdit()
         self.find_edit.setPlaceholderText(i18n.tr("find_placeholder"))
         self.replace_edit = QLineEdit()
         self.replace_edit.setPlaceholderText(i18n.tr("replace_placeholder"))
-
         self.case_sensitive_check = QCheckBox(i18n.tr("case_sensitive"))
         self.case_sensitive_check.setChecked(True)
 
+        # Mode 3: Direct Input
         self.direct_name_edit = QLineEdit()
         self.direct_name_edit.setPlaceholderText(i18n.tr("direct_name_placeholder"))
 
+        # Mode 4: Regex
+        self.regex_pattern_edit = QLineEdit()
+        self.regex_pattern_edit.setPlaceholderText(i18n.tr("regex_pattern_placeholder"))
+        self.regex_replace_edit = QLineEdit()
+        self.regex_replace_edit.setPlaceholderText(i18n.tr("regex_replace_placeholder"))
+        self._regex_hint_label = QLabel(i18n.tr("regex_hint"))
+        self._regex_hint_label.setObjectName("hint_label")
+
+        # Mode 5: Datetime
+        self.datetime_format_edit = QLineEdit()
+        self.datetime_format_edit.setPlaceholderText(i18n.tr("datetime_format_placeholder"))
+        self.datetime_format_edit.setText("IMG_{Y}{M}{D}_{h}{m}{s}")
+        self.datetime_source_combo = QComboBox()
+        self.datetime_source_combo.addItem(i18n.tr("datetime_modified"), "modified")
+        self.datetime_source_combo.addItem(i18n.tr("datetime_created"), "created")
+        self._datetime_hint_label = QLabel(i18n.tr("datetime_hint"))
+        self._datetime_hint_label.setObjectName("hint_label")
+
+        # Mode 6: Attributes
+        self.attr_template_edit = QLineEdit()
+        self.attr_template_edit.setPlaceholderText(i18n.tr("attr_template_placeholder"))
+        self.attr_template_edit.setText("{name}_{size}")
+        self._attr_hint_label = QLabel(i18n.tr("attr_hint"))
+        self._attr_hint_label.setObjectName("hint_label")
+
+        # Mode 7: Enhanced Sequence
+        self.seq_enh_prefix_edit = QLineEdit()
+        self.seq_enh_prefix_edit.setPlaceholderText(i18n.tr("seq_enh_prefix_placeholder"))
+        self.seq_enh_suffix_edit = QLineEdit()
+        self.seq_enh_suffix_edit.setPlaceholderText(i18n.tr("seq_enh_suffix_placeholder"))
+
+        self.seq_enh_start_spin = QSpinBox()
+        self.seq_enh_start_spin.setMinimum(0)
+        self.seq_enh_start_spin.setMaximum(99999)
+        self.seq_enh_start_spin.setValue(1)
+        self.seq_enh_start_spin.setFixedWidth(100)
+
+        self.seq_enh_step_spin = QSpinBox()
+        self.seq_enh_step_spin.setMinimum(1)
+        self.seq_enh_step_spin.setMaximum(100)
+        self.seq_enh_step_spin.setValue(1)
+        self.seq_enh_step_spin.setFixedWidth(100)
+
+        self.seq_enh_digits_spin = QSpinBox()
+        self.seq_enh_digits_spin.setMinimum(1)
+        self.seq_enh_digits_spin.setMaximum(10)
+        self.seq_enh_digits_spin.setValue(3)
+        self.seq_enh_digits_spin.setFixedWidth(100)
+
+        self.seq_enh_format_combo = QComboBox()
+        self.seq_enh_format_combo.addItem(i18n.tr("seq_enh_decimal"), "decimal")
+        self.seq_enh_format_combo.addItem(i18n.tr("seq_enh_roman"), "roman")
+        self.seq_enh_format_combo.addItem(i18n.tr("seq_enh_alpha_upper"), "alpha_upper")
+        self.seq_enh_format_combo.addItem(i18n.tr("seq_enh_alpha_lower"), "alpha_lower")
+        self.seq_enh_format_combo.addItem(i18n.tr("seq_enh_hex"), "hex")
+
     def _setup_layout(self):
         i18n = I18n.instance()
-        grid = QGridLayout(self)
-        grid.setSpacing(8)
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(10)
 
-        grid.addWidget(self.radio_prefix_suffix, 0, 0)
-        grid.addWidget(self.radio_sequential, 0, 1)
-        grid.addWidget(self.radio_replace, 0, 2)
-        grid.addWidget(self.radio_direct_input, 0, 3)
+        # Mode selector row (two rows of 4 radio buttons)
+        mode_row1 = QHBoxLayout()
+        mode_row1.setSpacing(16)
+        mode_row1.addWidget(self.radio_prefix_suffix)
+        mode_row1.addWidget(self.radio_sequential)
+        mode_row1.addWidget(self.radio_replace)
+        mode_row1.addWidget(self.radio_direct_input)
+        mode_row1.addStretch()
 
+        mode_row2 = QHBoxLayout()
+        mode_row2.setSpacing(16)
+        mode_row2.addWidget(self.radio_regex)
+        mode_row2.addWidget(self.radio_datetime)
+        mode_row2.addWidget(self.radio_attributes)
+        mode_row2.addWidget(self.radio_seq_enhanced)
+        mode_row2.addStretch()
+
+        main_layout.addLayout(mode_row1)
+        main_layout.addLayout(mode_row2)
+
+        # Separator
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        main_layout.addWidget(sep)
+
+        # Parameters area
+        self._params_widget = QWidget()
+        params_grid = QGridLayout(self._params_widget)
+        params_grid.setSpacing(8)
+        params_grid.setContentsMargins(0, 0, 0, 0)
+
+        # Mode 0: Prefix/Suffix
         self._label_prefix = QLabel(i18n.tr("prefix"))
-        grid.addWidget(self._label_prefix, 1, 0)
-        grid.addWidget(self.prefix_edit, 1, 1, 1, 3)
+        params_grid.addWidget(self._label_prefix, 0, 0)
+        params_grid.addWidget(self.prefix_edit, 0, 1, 1, 3)
         self._label_suffix = QLabel(i18n.tr("suffix"))
-        grid.addWidget(self._label_suffix, 2, 0)
-        grid.addWidget(self.suffix_edit, 2, 1, 1, 3)
+        params_grid.addWidget(self._label_suffix, 1, 0)
+        params_grid.addWidget(self.suffix_edit, 1, 1, 1, 3)
 
+        # Mode 1: Sequential
         self._label_start_num = QLabel(i18n.tr("start_num"))
-        grid.addWidget(self._label_start_num, 3, 0)
-        grid.addWidget(self.start_num_spin, 3, 1)
+        params_grid.addWidget(self._label_start_num, 2, 0)
+        params_grid.addWidget(self.start_num_spin, 2, 1)
 
         self._label_digits = QLabel(i18n.tr("digits"))
         digits_layout = QHBoxLayout()
@@ -187,34 +300,95 @@ class RenameModePanel(QGroupBox):
         digits_layout.addStretch()
         self._digits_widget = QWidget()
         self._digits_widget.setLayout(digits_layout)
-        grid.addWidget(self._digits_widget, 3, 2)
+        params_grid.addWidget(self._digits_widget, 2, 2)
 
         self._label_seq_prefix = QLabel(i18n.tr("seq_prefix"))
-        grid.addWidget(self._label_seq_prefix, 4, 0)
-        grid.addWidget(self.seq_prefix_edit, 4, 1, 1, 3)
+        params_grid.addWidget(self._label_seq_prefix, 3, 0)
+        params_grid.addWidget(self.seq_prefix_edit, 3, 1, 1, 3)
 
+        # Mode 2: Find & Replace
         self._label_find = QLabel(i18n.tr("find"))
-        grid.addWidget(self._label_find, 5, 0)
-        grid.addWidget(self.find_edit, 5, 1, 1, 3)
+        params_grid.addWidget(self._label_find, 4, 0)
+        params_grid.addWidget(self.find_edit, 4, 1, 1, 3)
         self._label_replace = QLabel(i18n.tr("replace"))
-        grid.addWidget(self._label_replace, 6, 0)
-        grid.addWidget(self.replace_edit, 6, 1, 1, 3)
+        params_grid.addWidget(self._label_replace, 5, 0)
+        params_grid.addWidget(self.replace_edit, 5, 1, 1, 3)
+        params_grid.addWidget(self.case_sensitive_check, 6, 1)
 
-        grid.addWidget(self.case_sensitive_check, 7, 1)
-
+        # Mode 3: Direct Input
         self._label_direct_name = QLabel(i18n.tr("new_filename"))
-        grid.addWidget(self._label_direct_name, 8, 0)
-        grid.addWidget(self.direct_name_edit, 8, 1, 1, 3)
+        params_grid.addWidget(self._label_direct_name, 7, 0)
+        params_grid.addWidget(self.direct_name_edit, 7, 1, 1, 3)
+
+        # Mode 4: Regex
+        self._label_regex_pattern = QLabel(i18n.tr("regex_pattern"))
+        params_grid.addWidget(self._label_regex_pattern, 8, 0)
+        params_grid.addWidget(self.regex_pattern_edit, 8, 1, 1, 3)
+        self._label_regex_replace = QLabel(i18n.tr("regex_replace"))
+        params_grid.addWidget(self._label_regex_replace, 9, 0)
+        params_grid.addWidget(self.regex_replace_edit, 9, 1, 1, 3)
+        params_grid.addWidget(self._regex_hint_label, 10, 1, 1, 3)
+
+        # Mode 5: Datetime
+        self._label_datetime_format = QLabel(i18n.tr("datetime_format"))
+        params_grid.addWidget(self._label_datetime_format, 11, 0)
+        params_grid.addWidget(self.datetime_format_edit, 11, 1, 1, 3)
+        self._label_datetime_source = QLabel(i18n.tr("datetime_source"))
+        params_grid.addWidget(self._label_datetime_source, 12, 0)
+        params_grid.addWidget(self.datetime_source_combo, 12, 1)
+        params_grid.addWidget(self._datetime_hint_label, 13, 1, 1, 3)
+
+        # Mode 6: Attributes
+        self._label_attr_template = QLabel(i18n.tr("attr_template"))
+        params_grid.addWidget(self._label_attr_template, 14, 0)
+        params_grid.addWidget(self.attr_template_edit, 14, 1, 1, 3)
+        params_grid.addWidget(self._attr_hint_label, 15, 1, 1, 3)
+
+        # Mode 7: Enhanced Sequence
+        self._label_seq_enh_prefix = QLabel(i18n.tr("seq_enh_prefix"))
+        params_grid.addWidget(self._label_seq_enh_prefix, 16, 0)
+        params_grid.addWidget(self.seq_enh_prefix_edit, 16, 1, 1, 3)
+        self._label_seq_enh_suffix = QLabel(i18n.tr("seq_enh_suffix"))
+        params_grid.addWidget(self._label_seq_enh_suffix, 17, 0)
+        params_grid.addWidget(self.seq_enh_suffix_edit, 17, 1, 1, 3)
+
+        seq_enh_row = QHBoxLayout()
+        self._label_seq_enh_start = QLabel(i18n.tr("seq_enh_start"))
+        seq_enh_row.addWidget(self._label_seq_enh_start)
+        seq_enh_row.addWidget(self.seq_enh_start_spin)
+        self._label_seq_enh_step = QLabel(i18n.tr("seq_enh_step"))
+        seq_enh_row.addWidget(self._label_seq_enh_step)
+        seq_enh_row.addWidget(self.seq_enh_step_spin)
+        self._label_seq_enh_digits = QLabel(i18n.tr("seq_enh_digits"))
+        seq_enh_row.addWidget(self._label_seq_enh_digits)
+        seq_enh_row.addWidget(self.seq_enh_digits_spin)
+        seq_enh_row.addStretch()
+        self._seq_enh_row_widget = QWidget()
+        self._seq_enh_row_widget.setLayout(seq_enh_row)
+        params_grid.addWidget(self._seq_enh_row_widget, 18, 0, 1, 4)
+
+        seq_enh_fmt_row = QHBoxLayout()
+        self._label_seq_enh_format = QLabel(i18n.tr("seq_enh_format"))
+        seq_enh_fmt_row.addWidget(self._label_seq_enh_format)
+        seq_enh_fmt_row.addWidget(self.seq_enh_format_combo)
+        seq_enh_fmt_row.addStretch()
+        self._seq_enh_fmt_widget = QWidget()
+        self._seq_enh_fmt_widget.setLayout(seq_enh_fmt_row)
+        params_grid.addWidget(self._seq_enh_fmt_widget, 19, 0, 1, 4)
+
+        main_layout.addWidget(self._params_widget)
 
     def _update_visibility(self):
         mode = self.mode_group.checkedId()
 
+        # Mode 0: Prefix/Suffix
         prefix_suffix_visible = (mode == 0)
         self._label_prefix.setVisible(prefix_suffix_visible)
         self.prefix_edit.setVisible(prefix_suffix_visible)
         self._label_suffix.setVisible(prefix_suffix_visible)
         self.suffix_edit.setVisible(prefix_suffix_visible)
 
+        # Mode 1: Sequential
         sequential_visible = (mode == 1)
         self._label_start_num.setVisible(sequential_visible)
         self.start_num_spin.setVisible(sequential_visible)
@@ -222,6 +396,7 @@ class RenameModePanel(QGroupBox):
         self._label_seq_prefix.setVisible(sequential_visible)
         self.seq_prefix_edit.setVisible(sequential_visible)
 
+        # Mode 2: Find & Replace
         replace_visible = (mode == 2)
         self._label_find.setVisible(replace_visible)
         self.find_edit.setVisible(replace_visible)
@@ -229,9 +404,41 @@ class RenameModePanel(QGroupBox):
         self.replace_edit.setVisible(replace_visible)
         self.case_sensitive_check.setVisible(replace_visible)
 
+        # Mode 3: Direct Input
         direct_visible = (mode == 3)
         self._label_direct_name.setVisible(direct_visible)
         self.direct_name_edit.setVisible(direct_visible)
+
+        # Mode 4: Regex
+        regex_visible = (mode == 4)
+        self._label_regex_pattern.setVisible(regex_visible)
+        self.regex_pattern_edit.setVisible(regex_visible)
+        self._label_regex_replace.setVisible(regex_visible)
+        self.regex_replace_edit.setVisible(regex_visible)
+        self._regex_hint_label.setVisible(regex_visible)
+
+        # Mode 5: Datetime
+        datetime_visible = (mode == 5)
+        self._label_datetime_format.setVisible(datetime_visible)
+        self.datetime_format_edit.setVisible(datetime_visible)
+        self._label_datetime_source.setVisible(datetime_visible)
+        self.datetime_source_combo.setVisible(datetime_visible)
+        self._datetime_hint_label.setVisible(datetime_visible)
+
+        # Mode 6: Attributes
+        attr_visible = (mode == 6)
+        self._label_attr_template.setVisible(attr_visible)
+        self.attr_template_edit.setVisible(attr_visible)
+        self._attr_hint_label.setVisible(attr_visible)
+
+        # Mode 7: Enhanced Sequence
+        seq_enh_visible = (mode == 7)
+        self._label_seq_enh_prefix.setVisible(seq_enh_visible)
+        self.seq_enh_prefix_edit.setVisible(seq_enh_visible)
+        self._label_seq_enh_suffix.setVisible(seq_enh_visible)
+        self.seq_enh_suffix_edit.setVisible(seq_enh_visible)
+        self._seq_enh_row_widget.setVisible(seq_enh_visible)
+        self._seq_enh_fmt_widget.setVisible(seq_enh_visible)
 
     def set_direct_input_available(self, available: bool):
         self.radio_direct_input.setVisible(available)
@@ -249,6 +456,10 @@ class RenameModePanel(QGroupBox):
         self.radio_sequential.setText(i18n.tr("mode_sequential"))
         self.radio_replace.setText(i18n.tr("mode_replace"))
         self.radio_direct_input.setText(i18n.tr("mode_direct_input"))
+        self.radio_regex.setText(i18n.tr("mode_regex"))
+        self.radio_datetime.setText(i18n.tr("mode_datetime"))
+        self.radio_attributes.setText(i18n.tr("mode_attributes"))
+        self.radio_seq_enhanced.setText(i18n.tr("mode_seq_enhanced"))
         self._label_prefix.setText(i18n.tr("prefix"))
         self._label_suffix.setText(i18n.tr("suffix"))
         self.prefix_edit.setPlaceholderText(i18n.tr("prefix_placeholder"))
@@ -264,6 +475,33 @@ class RenameModePanel(QGroupBox):
         self.case_sensitive_check.setText(i18n.tr("case_sensitive"))
         self._label_direct_name.setText(i18n.tr("new_filename"))
         self.direct_name_edit.setPlaceholderText(i18n.tr("direct_name_placeholder"))
+        self._label_regex_pattern.setText(i18n.tr("regex_pattern"))
+        self.regex_pattern_edit.setPlaceholderText(i18n.tr("regex_pattern_placeholder"))
+        self._label_regex_replace.setText(i18n.tr("regex_replace"))
+        self.regex_replace_edit.setPlaceholderText(i18n.tr("regex_replace_placeholder"))
+        self._regex_hint_label.setText(i18n.tr("regex_hint"))
+        self._label_datetime_format.setText(i18n.tr("datetime_format"))
+        self.datetime_format_edit.setPlaceholderText(i18n.tr("datetime_format_placeholder"))
+        self._label_datetime_source.setText(i18n.tr("datetime_source"))
+        self.datetime_source_combo.setItemText(0, i18n.tr("datetime_modified"))
+        self.datetime_source_combo.setItemText(1, i18n.tr("datetime_created"))
+        self._datetime_hint_label.setText(i18n.tr("datetime_hint"))
+        self._label_attr_template.setText(i18n.tr("attr_template"))
+        self.attr_template_edit.setPlaceholderText(i18n.tr("attr_template_placeholder"))
+        self._attr_hint_label.setText(i18n.tr("attr_hint"))
+        self._label_seq_enh_prefix.setText(i18n.tr("seq_enh_prefix"))
+        self.seq_enh_prefix_edit.setPlaceholderText(i18n.tr("seq_enh_prefix_placeholder"))
+        self._label_seq_enh_suffix.setText(i18n.tr("seq_enh_suffix"))
+        self.seq_enh_suffix_edit.setPlaceholderText(i18n.tr("seq_enh_suffix_placeholder"))
+        self._label_seq_enh_start.setText(i18n.tr("seq_enh_start"))
+        self._label_seq_enh_step.setText(i18n.tr("seq_enh_step"))
+        self._label_seq_enh_digits.setText(i18n.tr("seq_enh_digits"))
+        self._label_seq_enh_format.setText(i18n.tr("seq_enh_format"))
+        self.seq_enh_format_combo.setItemText(0, i18n.tr("seq_enh_decimal"))
+        self.seq_enh_format_combo.setItemText(1, i18n.tr("seq_enh_roman"))
+        self.seq_enh_format_combo.setItemText(2, i18n.tr("seq_enh_alpha_upper"))
+        self.seq_enh_format_combo.setItemText(3, i18n.tr("seq_enh_alpha_lower"))
+        self.seq_enh_format_combo.setItemText(4, i18n.tr("seq_enh_hex"))
 
 
 class PreviewTable(QGroupBox):
@@ -272,6 +510,7 @@ class PreviewTable(QGroupBox):
     def __init__(self):
         super().__init__(I18n.instance().tr("preview"))
         self.table = QTableWidget()
+        self._show_folder_column = False
         self._setup_table()
         self._setup_layout()
         self.table.itemChanged.connect(self._on_item_changed)
@@ -279,21 +518,27 @@ class PreviewTable(QGroupBox):
 
     def _setup_table(self):
         i18n = I18n.instance()
-        self.table.setColumnCount(4)
+        self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels([
             i18n.tr("col_select"), i18n.tr("col_original"),
-            i18n.tr("col_new"), i18n.tr("col_status")
+            i18n.tr("col_new"), i18n.tr("col_status"), i18n.tr("col_folder")
         ])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self.table.setColumnWidth(0, 50)
         self.table.setColumnWidth(3, 80)
+        self.table.setColumnHidden(4, True)
         self.table.setAlternatingRowColors(True)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+
+    def set_show_folder_column(self, show: bool):
+        self._show_folder_column = show
+        self.table.setColumnHidden(4, not show)
 
     def _setup_layout(self):
         v = QVBoxLayout(self)
@@ -340,7 +585,8 @@ class PreviewTable(QGroupBox):
         self.table.blockSignals(False)
         self.selection_changed.emit(self.get_checked_count())
 
-    def update_preview(self, file_list: list, generate_new_name_func, checked_indices: set = None):
+    def update_preview(self, file_list: list, generate_new_name_func,
+                       checked_indices: set = None, rel_paths: list = None):
         i18n = I18n.instance()
         self.table.blockSignals(True)
         self.table.setRowCount(len(file_list))
@@ -402,6 +648,14 @@ class PreviewTable(QGroupBox):
             self.table.setItem(i, 2, item_new)
             self.table.setItem(i, 3, item_status)
 
+            # Folder column
+            folder_text = ""
+            if rel_paths and i < len(rel_paths):
+                folder_text = rel_paths[i]
+            item_folder = QTableWidgetItem(folder_text)
+            item_folder.setForeground(QColor("#888888"))
+            self.table.setItem(i, 4, item_folder)
+
         self.table.blockSignals(False)
 
     def _retranslate(self):
@@ -411,14 +665,14 @@ class PreviewTable(QGroupBox):
         self.btn_deselect_all.setText(i18n.tr("deselect_all"))
         self.table.setHorizontalHeaderLabels([
             i18n.tr("col_select"), i18n.tr("col_original"),
-            i18n.tr("col_new"), i18n.tr("col_status")
+            i18n.tr("col_new"), i18n.tr("col_status"), i18n.tr("col_folder")
         ])
 
 
 class ActionButtons(QHBoxLayout):
     def __init__(self):
         super().__init__()
-        self.setSpacing(16)
+        self.setSpacing(12)
         self.setContentsMargins(0, 12, 0, 4)
         self._init_widgets()
         I18n.instance().language_changed.connect(self._retranslate)
@@ -430,20 +684,38 @@ class ActionButtons(QHBoxLayout):
         self.btn_refresh.setFixedHeight(40)
         self.btn_refresh.setMinimumWidth(110)
         self.btn_refresh.setObjectName("btn_refresh")
+        self.btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_preview_detail = QPushButton(i18n.tr("btn_preview_detail"))
+        self.btn_preview_detail.setFixedHeight(40)
+        self.btn_preview_detail.setMinimumWidth(120)
+        self.btn_preview_detail.setObjectName("btn_preview_detail")
+        self.btn_preview_detail.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.btn_execute = QPushButton(i18n.tr("btn_execute"))
         self.btn_execute.setFixedHeight(42)
-        self.btn_execute.setMinimumWidth(150)
+        self.btn_execute.setMinimumWidth(140)
         self.btn_execute.setObjectName("btn_execute")
+        self.btn_execute.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.btn_undo = QPushButton(i18n.tr("btn_undo"))
         self.btn_undo.setFixedHeight(42)
-        self.btn_undo.setMinimumWidth(130)
+        self.btn_undo.setMinimumWidth(120)
         self.btn_undo.setObjectName("btn_undo")
         self.btn_undo.setEnabled(False)
+        self.btn_undo.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_undo_all = QPushButton(i18n.tr("btn_undo_all"))
+        self.btn_undo_all.setFixedHeight(42)
+        self.btn_undo_all.setMinimumWidth(120)
+        self.btn_undo_all.setObjectName("btn_undo")
+        self.btn_undo_all.setEnabled(False)
+        self.btn_undo_all.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.addWidget(self.btn_refresh)
+        self.addWidget(self.btn_preview_detail)
         self.addStretch()
+        self.addWidget(self.btn_undo_all)
         self.addWidget(self.btn_undo)
         self.addWidget(self.btn_execute)
 
@@ -452,6 +724,91 @@ class ActionButtons(QHBoxLayout):
         self.btn_refresh.setText(i18n.tr("btn_refresh"))
         self.btn_execute.setText(i18n.tr("btn_execute"))
         self.btn_undo.setText(i18n.tr("btn_undo"))
+        self.btn_preview_detail.setText(i18n.tr("btn_preview_detail"))
+        self.btn_undo_all.setText(i18n.tr("btn_undo_all"))
+
+
+class PreviewDialog(QDialog):
+    def __init__(self, parent, rename_map: list):
+        super().__init__(parent)
+        self._rename_map = rename_map
+        self._build_ui()
+
+    def _build_ui(self):
+        i18n = I18n.instance()
+        colors = ThemeManager.instance().get_colors()
+
+        self.setWindowTitle(i18n.tr("preview_dialog_title"))
+        self.setMinimumSize(700, 500)
+        self.setModal(True)
+
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {colors.page_background};
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
+
+        # Header
+        header = QLabel(i18n.tr("preview_dialog_title"))
+        header.setStyleSheet(f"""
+            QLabel {{
+                font-size: 18px;
+                font-weight: bold;
+                color: {colors.primary};
+            }}
+        """)
+        layout.addWidget(header)
+
+        subtitle = QLabel(i18n.tr("preview_total", count=len(self._rename_map)))
+        subtitle.setStyleSheet(f"""
+            QLabel {{
+                font-size: 13px;
+                color: {colors.text_secondary};
+            }}
+        """)
+        layout.addWidget(subtitle)
+
+        # Table
+        self.table = QTableWidget()
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["#", i18n.tr("col_original"), i18n.tr("col_new")])
+        header_view = self.table.horizontalHeader()
+        header_view.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header_view.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header_view.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 50)
+        self.table.setAlternatingRowColors(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+
+        self.table.setRowCount(len(self._rename_map))
+        for i, (old_name, new_name) in enumerate(self._rename_map):
+            idx_item = QTableWidgetItem(str(i + 1))
+            idx_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(i, 0, idx_item)
+            self.table.setItem(i, 1, QTableWidgetItem(old_name))
+            new_item = QTableWidgetItem(new_name)
+            new_item.setForeground(QColor(colors.primary))
+            self.table.setItem(i, 2, new_item)
+
+        layout.addWidget(self.table)
+
+        # Footer buttons
+        footer = QHBoxLayout()
+        footer.addStretch()
+
+        btn_close = QPushButton(i18n.tr("ok"))
+        btn_close.setFixedHeight(36)
+        btn_close.setMinimumWidth(100)
+        btn_close.setObjectName("btn_execute")
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_close.clicked.connect(self.accept)
+        footer.addWidget(btn_close)
+        layout.addLayout(footer)
 
 
 class StyledDialog(QDialog):
@@ -461,9 +818,9 @@ class StyledDialog(QDialog):
     ICON_QUESTION = "question"
 
     _ICON_MAP = {
-        "info": ("i", "#1a73e8", "#e8f0fe"),
+        "info": ("ℹ", "#1a73e8", "#e8f0fe"),
         "success": ("✓", "#2e7d32", "#e8f5e9"),
-        "warning": ("!", "#e65100", "#fff3e0"),
+        "warning": ("⚠", "#e65100", "#fff3e0"),
         "question": ("?", "#1a73e8", "#e8f0fe"),
     }
 
@@ -497,7 +854,7 @@ class StyledDialog(QDialog):
         content_layout.setSpacing(12)
         content_layout.setContentsMargins(28, 28, 28, 20)
 
-        icon_char, icon_color, icon_bg = self._ICON_MAP.get(icon_type, ("i", "#1a73e8", "#e8f0fe"))
+        icon_char, icon_color, icon_bg = self._ICON_MAP.get(icon_type, ("ℹ", "#1a73e8", "#e8f0fe"))
 
         icon_label = QLabel(icon_char)
         icon_label.setFixedSize(52, 52)

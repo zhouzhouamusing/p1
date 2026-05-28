@@ -400,6 +400,68 @@ def generate_stylesheet(c: ThemeColors) -> str:
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
             height: 0;
         }}
+        QComboBox {{
+            padding: 7px 12px;
+            border: 1px solid {c.border};
+            border-radius: 6px;
+            background-color: {c.input_bg};
+            font-size: 13px;
+            color: {c.text_primary};
+            min-height: 28px;
+        }}
+        QComboBox:focus {{
+            border: 2px solid {c.primary};
+        }}
+        QComboBox::drop-down {{
+            subcontrol-origin: padding;
+            subcontrol-position: top right;
+            width: 28px;
+            border-left: 1px solid {c.border_light};
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            background-color: {c.surface_alt};
+        }}
+        QComboBox::down-arrow {{
+            width: 10px;
+            height: 10px;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid {c.text_secondary};
+        }}
+        QComboBox QAbstractItemView {{
+            background-color: {c.card_background};
+            border: 1px solid {c.border};
+            border-radius: 6px;
+            padding: 4px;
+            selection-background-color: {c.primary_surface};
+            selection-color: {c.primary};
+        }}
+        QLabel#hint_label {{
+            font-size: 11px;
+            color: {c.text_secondary};
+            padding: 2px 0;
+            font-style: italic;
+        }}
+        QPushButton#btn_preview_detail {{
+            background-color: {c.card_background};
+            border: 1px solid {c.primary};
+            color: {c.primary};
+            font-weight: bold;
+            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }}
+        QPushButton#btn_preview_detail:hover {{
+            background-color: {c.primary_surface};
+            border-color: {c.primary_pressed};
+        }}
+        QPushButton#btn_preview_detail:pressed {{
+            background-color: {c.primary_hover};
+        }}
+        QScrollArea {{
+            border: none;
+            background-color: transparent;
+        }}
     """
 
 

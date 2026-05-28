@@ -60,12 +60,17 @@ _ZH_CN = {
     "path_label": "路径:",
     "browse": "浏览...",
     "folder_placeholder": "请选择文件夹...",
+    "include_subfolders": "包含子文件夹",
 
     "rename_rules": "重命名规则",
-    "mode_prefix_suffix": "添加前缀/后缀",
-    "mode_sequential": "数字序号命名",
+    "mode_prefix_suffix": "前缀/后缀",
+    "mode_sequential": "序号命名",
     "mode_replace": "查找替换",
-    "mode_direct_input": "直接输入文件名",
+    "mode_direct_input": "直接输入",
+    "mode_regex": "正则表达式",
+    "mode_datetime": "日期时间",
+    "mode_attributes": "文件属性",
+    "mode_seq_enhanced": "高级序号",
     "prefix": "前缀:",
     "suffix": "后缀:",
     "prefix_placeholder": "输入前缀",
@@ -82,6 +87,37 @@ _ZH_CN = {
     "new_filename": "新文件名:",
     "direct_name_placeholder": "输入新文件名（不含扩展名）",
 
+    "regex_pattern": "正则模式:",
+    "regex_pattern_placeholder": "输入正则表达式，如: (\\d+)",
+    "regex_replace": "替换为:",
+    "regex_replace_placeholder": "替换模板，如: file_\\1",
+    "regex_hint": "提示: 支持分组引用 \\1, \\2 等",
+
+    "datetime_format": "命名格式:",
+    "datetime_format_placeholder": "如: IMG_{Y}{M}{D}_{h}{m}{s}",
+    "datetime_source": "时间来源:",
+    "datetime_modified": "修改时间",
+    "datetime_created": "创建时间",
+    "datetime_hint": "变量: {Y}年 {M}月 {D}日 {h}时 {m}分 {s}秒 {name}原名",
+
+    "attr_template": "命名模板:",
+    "attr_template_placeholder": "如: {name}_{size}",
+    "attr_hint": "变量: {name}原名 {size}大小 {type}类型 {ext}扩展名",
+
+    "seq_enh_prefix": "前缀:",
+    "seq_enh_prefix_placeholder": "序号前缀",
+    "seq_enh_suffix": "后缀:",
+    "seq_enh_suffix_placeholder": "序号后缀（不含扩展名）",
+    "seq_enh_start": "起始值:",
+    "seq_enh_step": "步长:",
+    "seq_enh_digits": "位数:",
+    "seq_enh_format": "格式:",
+    "seq_enh_decimal": "十进制",
+    "seq_enh_roman": "罗马数字",
+    "seq_enh_alpha_upper": "大写字母",
+    "seq_enh_alpha_lower": "小写字母",
+    "seq_enh_hex": "十六进制",
+
     "output_location": "输出位置",
     "output_original_dir": "原目录",
     "output_custom_dir": "自定义文件夹",
@@ -94,19 +130,23 @@ _ZH_CN = {
     "col_original": "原文件名",
     "col_new": "新文件名",
     "col_status": "状态",
+    "col_folder": "所在文件夹",
     "status_ready": "就绪",
     "status_conflict": "冲突",
     "status_no_change": "无变化",
     "status_skip": "跳过",
 
-    "btn_refresh": "刷新列表",
-    "btn_undo": "撤销重命名",
-    "btn_execute": "执行重命名",
+    "btn_refresh": "🔄 刷新列表",
+    "btn_undo": "↩️ 撤销重命名",
+    "btn_execute": "▶️ 执行重命名",
+    "btn_preview_detail": "📋 预览清单",
+    "btn_undo_all": "⏪ 撤销全部",
 
     "status_ready_msg": "就绪",
     "file_count": "文件数: {total} (已选: {selected})",
     "file_count_zero": "文件数: 0",
     "loaded_files": "已加载 {count} 个文件",
+    "loaded_files_with_sub": "已加载 {count} 个文件（含子文件夹）",
 
     "tip": "提示",
     "confirm": "确认",
@@ -133,6 +173,14 @@ _ZH_CN = {
     "undo_done_msg": "已恢复 {count} 个文件的原名称",
     "undo_partial": "部分撤销",
     "undo_status": "撤销完成: {success} 恢复, {errors} 失败",
+    "confirm_undo_all": "将撤销全部 {count} 次操作\n确认？",
+    "confirm_undo_all_title": "确认撤销全部",
+    "undo_all_done": "已撤销全部操作",
+    "undo_history_count": "可撤销 {count} 步操作",
+
+    "preview_dialog_title": "重命名预览清单",
+    "preview_dialog_subtitle": "请确认以下文件的新旧名称对照",
+    "preview_total": "共 {count} 个文件将被重命名",
 
     "permission_error": "权限错误",
     "permission_error_msg": "无法访问该文件夹",
@@ -147,20 +195,23 @@ _ZH_CN = {
     "guide_title": "操作指南",
     "guide_content": (
         "1. 点击「浏览」选择包含目标文件的文件夹\n"
-        "2. 选择重命名模式并配置参数\n"
-        "3. 在预览表中查看效果，勾选需要重命名的文件\n"
-        "4. 选择输出位置（原目录或自定义文件夹）\n"
-        "5. 点击「执行重命名」完成操作\n"
-        "6. 如需恢复，点击「撤销重命名」"
+        "2. 勾选「包含子文件夹」可递归处理\n"
+        "3. 选择重命名模式并配置参数\n"
+        "4. 在预览表中查看效果，勾选需要重命名的文件\n"
+        "5. 点击「预览清单」查看详细对照\n"
+        "6. 点击「执行重命名」完成操作\n"
+        "7. 支持多步撤销，逐步恢复"
     ),
     "faq_title": "常见问题",
     "faq_content": (
         "Q: 重命名后可以撤销吗？\n"
-        "A: 可以，点击「撤销重命名」即可恢复上一次操作。\n\n"
+        "A: 可以，支持多步撤销，逐步恢复每次操作。\n\n"
         "Q: 出现文件名冲突怎么办？\n"
         "A: 冲突文件会自动标记为红色并跳过，不会覆盖已有文件。\n\n"
-        "Q: 如何批量添加序号？\n"
-        "A: 选择「数字序号命名」模式，设置起始序号和位数即可。\n\n"
+        "Q: 正则表达式模式怎么用？\n"
+        "A: 在模式框中输入正则表达式，替换框中可用 \\1 等引用分组。\n\n"
+        "Q: 日期时间模式支持哪些变量？\n"
+        "A: {Y}年 {M}月 {D}日 {h}时 {m}分 {s}秒 {name}原名。\n\n"
         "Q: 支持哪些文件类型？\n"
         "A: 支持所有文件类型，工具只修改文件名不修改文件内容。"
     ),
@@ -225,12 +276,17 @@ _ZH_TW = {
     "path_label": "路徑:",
     "browse": "瀏覽...",
     "folder_placeholder": "請選擇資料夾...",
+    "include_subfolders": "包含子資料夾",
 
     "rename_rules": "重新命名規則",
-    "mode_prefix_suffix": "新增前綴/後綴",
-    "mode_sequential": "數字序號命名",
+    "mode_prefix_suffix": "前綴/後綴",
+    "mode_sequential": "序號命名",
     "mode_replace": "尋找取代",
-    "mode_direct_input": "直接輸入檔名",
+    "mode_direct_input": "直接輸入",
+    "mode_regex": "正規表示式",
+    "mode_datetime": "日期時間",
+    "mode_attributes": "檔案屬性",
+    "mode_seq_enhanced": "進階序號",
     "prefix": "前綴:",
     "suffix": "後綴:",
     "prefix_placeholder": "輸入前綴",
@@ -247,6 +303,37 @@ _ZH_TW = {
     "new_filename": "新檔名:",
     "direct_name_placeholder": "輸入新檔名（不含副檔名）",
 
+    "regex_pattern": "正規模式:",
+    "regex_pattern_placeholder": "輸入正規表示式，如: (\\d+)",
+    "regex_replace": "取代為:",
+    "regex_replace_placeholder": "取代範本，如: file_\\1",
+    "regex_hint": "提示: 支援群組參考 \\1, \\2 等",
+
+    "datetime_format": "命名格式:",
+    "datetime_format_placeholder": "如: IMG_{Y}{M}{D}_{h}{m}{s}",
+    "datetime_source": "時間來源:",
+    "datetime_modified": "修改時間",
+    "datetime_created": "建立時間",
+    "datetime_hint": "變數: {Y}年 {M}月 {D}日 {h}時 {m}分 {s}秒 {name}原名",
+
+    "attr_template": "命名範本:",
+    "attr_template_placeholder": "如: {name}_{size}",
+    "attr_hint": "變數: {name}原名 {size}大小 {type}類型 {ext}副檔名",
+
+    "seq_enh_prefix": "前綴:",
+    "seq_enh_prefix_placeholder": "序號前綴",
+    "seq_enh_suffix": "後綴:",
+    "seq_enh_suffix_placeholder": "序號後綴（不含副檔名）",
+    "seq_enh_start": "起始值:",
+    "seq_enh_step": "步長:",
+    "seq_enh_digits": "位數:",
+    "seq_enh_format": "格式:",
+    "seq_enh_decimal": "十進位",
+    "seq_enh_roman": "羅馬數字",
+    "seq_enh_alpha_upper": "大寫字母",
+    "seq_enh_alpha_lower": "小寫字母",
+    "seq_enh_hex": "十六進位",
+
     "output_location": "輸出位置",
     "output_original_dir": "原目錄",
     "output_custom_dir": "自訂資料夾",
@@ -259,19 +346,23 @@ _ZH_TW = {
     "col_original": "原檔名",
     "col_new": "新檔名",
     "col_status": "狀態",
+    "col_folder": "所在資料夾",
     "status_ready": "就緒",
     "status_conflict": "衝突",
     "status_no_change": "無變化",
     "status_skip": "跳過",
 
-    "btn_refresh": "重新整理",
-    "btn_undo": "復原重新命名",
-    "btn_execute": "執行重新命名",
+    "btn_refresh": "🔄 重新整理",
+    "btn_undo": "↩️ 復原命名",
+    "btn_execute": "▶️ 執行命名",
+    "btn_preview_detail": "📋 預覽清單",
+    "btn_undo_all": "⏪ 復原全部",
 
     "status_ready_msg": "就緒",
     "file_count": "檔案數: {total} (已選: {selected})",
     "file_count_zero": "檔案數: 0",
     "loaded_files": "已載入 {count} 個檔案",
+    "loaded_files_with_sub": "已載入 {count} 個檔案（含子資料夾）",
 
     "tip": "提示",
     "confirm": "確認",
@@ -298,6 +389,14 @@ _ZH_TW = {
     "undo_done_msg": "已恢復 {count} 個檔案的原名稱",
     "undo_partial": "部分復原",
     "undo_status": "復原完成: {success} 恢復, {errors} 失敗",
+    "confirm_undo_all": "將復原全部 {count} 次操作\n確認？",
+    "confirm_undo_all_title": "確認復原全部",
+    "undo_all_done": "已復原全部操作",
+    "undo_history_count": "可復原 {count} 步操作",
+
+    "preview_dialog_title": "重新命名預覽清單",
+    "preview_dialog_subtitle": "請確認以下檔案的新舊名稱對照",
+    "preview_total": "共 {count} 個檔案將被重新命名",
 
     "permission_error": "權限錯誤",
     "permission_error_msg": "無法存取該資料夾",
@@ -312,20 +411,23 @@ _ZH_TW = {
     "guide_title": "操作指南",
     "guide_content": (
         "1. 點擊「瀏覽」選擇包含目標檔案的資料夾\n"
-        "2. 選擇重新命名模式並配置參數\n"
-        "3. 在預覽表中查看效果，勾選需要重新命名的檔案\n"
-        "4. 選擇輸出位置（原目錄或自訂資料夾）\n"
-        "5. 點擊「執行重新命名」完成操作\n"
-        "6. 如需恢復，點擊「復原重新命名」"
+        "2. 勾選「包含子資料夾」可遞迴處理\n"
+        "3. 選擇重新命名模式並配置參數\n"
+        "4. 在預覽表中查看效果，勾選需要重新命名的檔案\n"
+        "5. 點擊「預覽清單」查看詳細對照\n"
+        "6. 點擊「執行重新命名」完成操作\n"
+        "7. 支援多步復原，逐步恢復"
     ),
     "faq_title": "常見問題",
     "faq_content": (
         "Q: 重新命名後可以復原嗎？\n"
-        "A: 可以，點擊「復原重新命名」即可恢復上一次操作。\n\n"
+        "A: 可以，支援多步復原，逐步恢復每次操作。\n\n"
         "Q: 出現檔名衝突怎麼辦？\n"
         "A: 衝突檔案會自動標記為紅色並跳過，不會覆蓋已有檔案。\n\n"
-        "Q: 如何批次新增序號？\n"
-        "A: 選擇「數字序號命名」模式，設定起始序號和位數即可。\n\n"
+        "Q: 正規表示式模式怎麼用？\n"
+        "A: 在模式框中輸入正規表示式，取代框中可用 \\1 等參考群組。\n\n"
+        "Q: 日期時間模式支援哪些變數？\n"
+        "A: {Y}年 {M}月 {D}日 {h}時 {m}分 {s}秒 {name}原名。\n\n"
         "Q: 支援哪些檔案類型？\n"
         "A: 支援所有檔案類型，工具只修改檔名不修改檔案內容。"
     ),
@@ -390,12 +492,17 @@ _EN_US = {
     "path_label": "Path:",
     "browse": "Browse...",
     "folder_placeholder": "Select a folder...",
+    "include_subfolders": "Include subfolders",
 
     "rename_rules": "Rename Rules",
-    "mode_prefix_suffix": "Add Prefix/Suffix",
-    "mode_sequential": "Sequential Numbering",
+    "mode_prefix_suffix": "Prefix/Suffix",
+    "mode_sequential": "Sequential",
     "mode_replace": "Find & Replace",
     "mode_direct_input": "Direct Input",
+    "mode_regex": "Regex",
+    "mode_datetime": "Date/Time",
+    "mode_attributes": "Attributes",
+    "mode_seq_enhanced": "Advanced Seq",
     "prefix": "Prefix:",
     "suffix": "Suffix:",
     "prefix_placeholder": "Enter prefix",
@@ -412,6 +519,37 @@ _EN_US = {
     "new_filename": "New name:",
     "direct_name_placeholder": "Enter new filename (without extension)",
 
+    "regex_pattern": "Pattern:",
+    "regex_pattern_placeholder": "Regex pattern, e.g.: (\\d+)",
+    "regex_replace": "Replace:",
+    "regex_replace_placeholder": "Replace template, e.g.: file_\\1",
+    "regex_hint": "Tip: Use \\1, \\2 for group references",
+
+    "datetime_format": "Format:",
+    "datetime_format_placeholder": "e.g.: IMG_{Y}{M}{D}_{h}{m}{s}",
+    "datetime_source": "Source:",
+    "datetime_modified": "Modified time",
+    "datetime_created": "Created time",
+    "datetime_hint": "Vars: {Y}year {M}month {D}day {h}hour {m}min {s}sec {name}original",
+
+    "attr_template": "Template:",
+    "attr_template_placeholder": "e.g.: {name}_{size}",
+    "attr_hint": "Vars: {name}original {size}size {type}type {ext}extension",
+
+    "seq_enh_prefix": "Prefix:",
+    "seq_enh_prefix_placeholder": "Sequence prefix",
+    "seq_enh_suffix": "Suffix:",
+    "seq_enh_suffix_placeholder": "Sequence suffix (without extension)",
+    "seq_enh_start": "Start:",
+    "seq_enh_step": "Step:",
+    "seq_enh_digits": "Digits:",
+    "seq_enh_format": "Format:",
+    "seq_enh_decimal": "Decimal",
+    "seq_enh_roman": "Roman",
+    "seq_enh_alpha_upper": "Uppercase",
+    "seq_enh_alpha_lower": "Lowercase",
+    "seq_enh_hex": "Hexadecimal",
+
     "output_location": "Output Location",
     "output_original_dir": "Original Directory",
     "output_custom_dir": "Custom Folder",
@@ -424,19 +562,23 @@ _EN_US = {
     "col_original": "Original Name",
     "col_new": "New Name",
     "col_status": "Status",
+    "col_folder": "Folder",
     "status_ready": "Ready",
     "status_conflict": "Conflict",
     "status_no_change": "No Change",
     "status_skip": "Skip",
 
-    "btn_refresh": "Refresh",
-    "btn_undo": "Undo Rename",
-    "btn_execute": "Execute Rename",
+    "btn_refresh": "🔄 Refresh",
+    "btn_undo": "↩️ Undo",
+    "btn_execute": "▶️ Execute",
+    "btn_preview_detail": "📋 Preview",
+    "btn_undo_all": "⏪ Undo All",
 
     "status_ready_msg": "Ready",
     "file_count": "Files: {total} (Selected: {selected})",
     "file_count_zero": "Files: 0",
     "loaded_files": "Loaded {count} files",
+    "loaded_files_with_sub": "Loaded {count} files (including subfolders)",
 
     "tip": "Notice",
     "confirm": "Confirm",
@@ -451,7 +593,7 @@ _EN_US = {
     "confirm_execute": "Proceed?",
     "confirm_rename_title": "Confirm Rename",
     "done": "Done",
-    "done_msg": "Successfully renamed {count} files!\nClick 'Undo Rename' to revert.",
+    "done_msg": "Successfully renamed {count} files!\nClick 'Undo' to revert.",
     "partial_done": "Partially Done",
     "success_count": "Success: {success}, Failed: {errors}",
     "status_done": "Done: {success} success, {errors} failed, {conflicts} conflicts skipped",
@@ -463,6 +605,14 @@ _EN_US = {
     "undo_done_msg": "Restored original names for {count} files",
     "undo_partial": "Partially Undone",
     "undo_status": "Undo complete: {success} restored, {errors} failed",
+    "confirm_undo_all": "Undo all {count} operations?\nConfirm?",
+    "confirm_undo_all_title": "Confirm Undo All",
+    "undo_all_done": "All operations undone",
+    "undo_history_count": "{count} steps available to undo",
+
+    "preview_dialog_title": "Rename Preview",
+    "preview_dialog_subtitle": "Please confirm the old/new name mapping below",
+    "preview_total": "{count} files will be renamed",
 
     "permission_error": "Permission Error",
     "permission_error_msg": "Cannot access this folder",
@@ -477,20 +627,23 @@ _EN_US = {
     "guide_title": "User Guide",
     "guide_content": (
         "1. Click 'Browse' to select a folder with target files\n"
-        "2. Choose a rename mode and configure parameters\n"
-        "3. Preview the results in the table, check files to rename\n"
-        "4. Choose output location (original dir or custom folder)\n"
-        "5. Click 'Execute Rename' to apply\n"
-        "6. Click 'Undo Rename' to revert if needed"
+        "2. Check 'Include subfolders' for recursive processing\n"
+        "3. Choose a rename mode and configure parameters\n"
+        "4. Preview the results in the table, check files to rename\n"
+        "5. Click 'Preview' for detailed mapping\n"
+        "6. Click 'Execute' to apply\n"
+        "7. Multi-step undo supported"
     ),
     "faq_title": "FAQ",
     "faq_content": (
         "Q: Can I undo a rename?\n"
-        "A: Yes, click 'Undo Rename' to revert the last operation.\n\n"
+        "A: Yes, multi-step undo is supported to revert each operation.\n\n"
         "Q: What if there are filename conflicts?\n"
         "A: Conflicting files are marked in red and skipped automatically.\n\n"
-        "Q: How to add sequential numbers?\n"
-        "A: Select 'Sequential Numbering' mode, set start number and digits.\n\n"
+        "Q: How to use regex mode?\n"
+        "A: Enter a regex pattern, use \\1, \\2 for group references in replace.\n\n"
+        "Q: What variables does datetime mode support?\n"
+        "A: {Y}year {M}month {D}day {h}hour {m}min {s}sec {name}original.\n\n"
         "Q: Which file types are supported?\n"
         "A: All file types. The tool only modifies filenames, not file content."
     ),

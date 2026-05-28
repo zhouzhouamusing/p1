@@ -141,6 +141,7 @@ class BatchRenamerWindow(QMainWindow):
     def _update_and_preview(self):
         self._update_renamer_settings()
         self.update_preview()
+        self._check_warnings()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -149,6 +150,24 @@ class BatchRenamerWindow(QMainWindow):
     def _animate_entrance(self):
         from utils.animations import fade_in
         fade_in(self.centralWidget(), duration=400)
+
+    def _check_warnings(self):
+        i18n = I18n.instance()
+        warnings = self.renamer.get_warnings()
+        if not warnings:
+            return
+        has_time = any("time_fallback" in w for w in warnings)
+        has_size = any("size_fallback" in w for w in warnings)
+        msg = ""
+        if has_time:
+            msg += i18n.tr("datetime_fallback_warn")
+        if has_size:
+            if msg:
+                msg += "\n"
+            msg += i18n.tr("attr_fallback_warn")
+        if msg:
+            self.status_label.setText(msg)
+        self.renamer.clear_warnings()
 
     def _on_subfolders_changed(self, include: bool):
         self.preview_table.set_show_folder_column(include)
@@ -240,6 +259,7 @@ class BatchRenamerWindow(QMainWindow):
 
     def update_preview(self):
         self._update_renamer_settings()
+        self.renamer.clear_warnings()
         checked_indices = set(self.preview_table.get_checked_indices())
         if not self.file_list:
             checked_indices = set()

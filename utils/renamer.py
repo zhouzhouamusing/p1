@@ -24,26 +24,29 @@ class Renamer:
         self.replace_text = ""
         self.case_sensitive = True
         self.direct_name = ""
-        # Regex mode
         self.regex_pattern = ""
         self.regex_replace = ""
-        # Datetime mode
         self.datetime_format = "IMG_{Y}{M}{D}_{h}{m}{s}"
-        self.datetime_source = "modified"  # "modified" or "created"
-        # Attributes mode
+        self.datetime_source = "modified"
         self.attr_template = "{name}_{size}"
-        # Enhanced sequence mode
         self.seq_enh_prefix = ""
         self.seq_enh_suffix = ""
         self.seq_enh_start = 1
         self.seq_enh_step = 1
         self.seq_enh_digits = 3
-        self.seq_enh_format = "decimal"  # "decimal", "roman", "alpha_upper", "alpha_lower", "hex"
+        self.seq_enh_format = "decimal"
 
         self._folder_path = ""
+        self._warnings = []
 
     def set_folder_path(self, path: str):
         self._folder_path = path
+
+    def get_warnings(self) -> list:
+        return self._warnings
+
+    def clear_warnings(self):
+        self._warnings = []
 
     def generate_new_name(self, original: str, index: int) -> str:
         name, ext = os.path.splitext(original)
@@ -70,7 +73,7 @@ class Renamer:
             return f"{self.direct_name}{ext}"
 
         elif self.mode == self.MODE_REGEX:
-            return self._generate_regex(name, ext)
+            return self._generate_regex(name, ext, original)
 
         elif self.mode == self.MODE_DATETIME:
             return self._generate_datetime(original, name, ext)
@@ -83,17 +86,20 @@ class Renamer:
 
         return original
 
-    def _generate_regex(self, name: str, ext: str) -> str:
+    def _generate_regex(self, name: str, ext: str, original: str) -> str:
         if not self.regex_pattern:
             return f"{name}{ext}"
         try:
-            new_name = re.sub(self.regex_pattern, self.regex_replace, name)
+            pattern = re.compile(self.regex_pattern)
+            new_name = pattern.sub(self.regex_replace, name)
             return f"{new_name}{ext}"
-        except re.error:
+        except re.error as e:
+            self._warnings.append(f"[{original}] regex error: {e}")
             return f"{name}{ext}"
 
     def _generate_datetime(self, original: str, name: str, ext: str) -> str:
         file_path = os.path.join(self._folder_path, original) if self._folder_path else original
+        fallback = False
         try:
             if self.datetime_source == "created":
                 timestamp = os.path.getctime(file_path)
@@ -102,6 +108,8 @@ class Renamer:
             dt = datetime.fromtimestamp(timestamp)
         except (OSError, ValueError):
             dt = datetime.now()
+            fallback = True
+            self._warnings.append(f"[{original}] time_fallback")
 
         fmt = self.datetime_format
         result = fmt.replace("{Y}", str(dt.year).zfill(4))
@@ -111,14 +119,19 @@ class Renamer:
         result = result.replace("{m}", str(dt.minute).zfill(2))
         result = result.replace("{s}", str(dt.second).zfill(2))
         result = result.replace("{name}", name)
+        if fallback:
+            result = result + "~"
         return f"{result}{ext}"
 
     def _generate_attributes(self, original: str, name: str, ext: str) -> str:
         file_path = os.path.join(self._folder_path, original) if self._folder_path else original
+        fallback = False
         try:
             size_bytes = os.path.getsize(file_path)
         except OSError:
             size_bytes = 0
+            fallback = True
+            self._warnings.append(f"[{original}] size_fallback")
 
         size_str = self._format_size(size_bytes)
         ext_type = ext[1:] if ext else "unknown"
@@ -128,6 +141,8 @@ class Renamer:
         result = result.replace("{size}", size_str)
         result = result.replace("{type}", ext_type)
         result = result.replace("{ext}", ext_type)
+        if fallback:
+            result = result + "~"
         return f"{result}{ext}"
 
     def _generate_seq_enhanced(self, name: str, ext: str, index: int) -> str:

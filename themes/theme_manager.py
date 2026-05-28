@@ -208,62 +208,71 @@ def generate_stylesheet(c: ThemeColors) -> str:
             padding: 6px 11px;
         }}
         QSpinBox {{
-            padding: 6px 8px;
+            padding: 6px 12px;
             border: 1px solid {c.border};
-            border-radius: 6px;
+            border-radius: 8px;
             background-color: {c.input_bg};
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: bold;
             color: {c.text_primary};
-            min-height: 30px;
+            min-height: 34px;
+            min-width: 80px;
         }}
         QSpinBox:focus {{
             border: 2px solid {c.primary};
+            padding: 5px 11px;
         }}
         QSpinBox::up-button {{
             subcontrol-origin: border;
             subcontrol-position: top right;
-            width: 26px;
-            border-left: 1px solid {c.border};
+            width: 30px;
+            border-left: 1px solid {c.border_light};
             border-bottom: 1px solid {c.border_light};
-            border-top-right-radius: 6px;
-            background-color: {c.surface_alt};
-        }}
-        QSpinBox::up-button:hover {{
+            border-top-right-radius: 8px;
             background-color: {c.primary_surface};
         }}
+        QSpinBox::up-button:hover {{
+            background-color: {c.primary};
+        }}
         QSpinBox::up-button:pressed {{
-            background-color: {c.primary_hover};
+            background-color: {c.primary_pressed};
         }}
         QSpinBox::up-arrow {{
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             image: none;
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
-            border-bottom: 6px solid {c.text_secondary};
+            border-bottom: 7px solid {c.primary};
+        }}
+        QSpinBox::up-arrow:hover {{
+            border-bottom: 7px solid {c.text_on_primary};
         }}
         QSpinBox::down-button {{
             subcontrol-origin: border;
             subcontrol-position: bottom right;
-            width: 26px;
-            border-left: 1px solid {c.border};
+            width: 30px;
+            border-left: 1px solid {c.border_light};
             border-top: 1px solid {c.border_light};
-            border-bottom-right-radius: 6px;
-            background-color: {c.surface_alt};
-        }}
-        QSpinBox::down-button:hover {{
+            border-bottom-right-radius: 8px;
             background-color: {c.primary_surface};
         }}
+        QSpinBox::down-button:hover {{
+            background-color: {c.primary};
+        }}
         QSpinBox::down-button:pressed {{
-            background-color: {c.primary_hover};
+            background-color: {c.primary_pressed};
         }}
         QSpinBox::down-arrow {{
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             image: none;
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
-            border-top: 6px solid {c.text_secondary};
+            border-top: 7px solid {c.primary};
+        }}
+        QSpinBox::down-arrow:hover {{
+            border-top: 7px solid {c.text_on_primary};
         }}
         QTableWidget {{
             border: 1px solid {c.border_light};

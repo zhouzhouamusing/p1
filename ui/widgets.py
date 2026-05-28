@@ -3,12 +3,69 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QSpinBox, QRadioButton,
     QButtonGroup, QCheckBox, QTableWidget, QTableWidgetItem,
     QHeaderView, QWidget, QDialog, QFileDialog, QComboBox,
-    QScrollArea, QFrame
+    QScrollArea, QFrame, QDateEdit
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QDate
 from PyQt6.QtGui import QColor, QFont
 from themes.theme_manager import ThemeManager
 from utils.i18n import I18n
+
+
+class StyledSpinBox(QWidget):
+    valueChanged = pyqtSignal(int)
+
+    def __init__(self, minimum=0, maximum=99999, value=1):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        self.btn_minus = QPushButton("−")
+        self.btn_minus.setObjectName("spin_btn_minus")
+        self.btn_minus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_minus.setFixedSize(36, 36)
+
+        self.spin = QSpinBox()
+        self.spin.setMinimum(minimum)
+        self.spin.setMaximum(maximum)
+        self.spin.setValue(value)
+        self.spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        self.spin.setFixedWidth(70)
+
+        self.btn_plus = QPushButton("+")
+        self.btn_plus.setObjectName("spin_btn_plus")
+        self.btn_plus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_plus.setFixedSize(36, 36)
+
+        layout.addWidget(self.btn_minus)
+        layout.addWidget(self.spin)
+        layout.addWidget(self.btn_plus)
+
+        self.btn_minus.clicked.connect(self._decrement)
+        self.btn_plus.clicked.connect(self._increment)
+        self.spin.valueChanged.connect(self.valueChanged.emit)
+
+    def _decrement(self):
+        self.spin.setValue(self.spin.value() - 1)
+
+    def _increment(self):
+        self.spin.setValue(self.spin.value() + 1)
+
+    def value(self):
+        return self.spin.value()
+
+    def setValue(self, v):
+        self.spin.setValue(v)
+
+    def setMinimum(self, v):
+        self.spin.setMinimum(v)
+
+    def setMaximum(self, v):
+        self.spin.setMaximum(v)
+
+    def setFixedWidth(self, w):
+        pass
 
 
 class FolderSelector(QGroupBox):
@@ -116,6 +173,148 @@ class OutputLocationSelector(QGroupBox):
         self.radio_custom.setText(i18n.tr("output_custom_dir"))
         self.custom_path_edit.setPlaceholderText(i18n.tr("output_custom_placeholder"))
         self.custom_browse_btn.setText(i18n.tr("browse"))
+
+
+class FileFilterPanel(QGroupBox):
+    filter_changed = pyqtSignal()
+
+    def __init__(self):
+        super().__init__(I18n.instance().tr("filter_title"))
+        self._setup_ui()
+        I18n.instance().language_changed.connect(self._retranslate)
+
+    def _setup_ui(self):
+        i18n = I18n.instance()
+        layout = QGridLayout(self)
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 16, 12, 12)
+
+        self._label_ext = QLabel(i18n.tr("filter_extension"))
+        self.ext_edit = QLineEdit()
+        self.ext_edit.setPlaceholderText(i18n.tr("filter_extension_placeholder"))
+        layout.addWidget(self._label_ext, 0, 0)
+        layout.addWidget(self.ext_edit, 0, 1, 1, 3)
+
+        self._label_size_min = QLabel(i18n.tr("filter_size_min"))
+        self.size_min_spin = QSpinBox()
+        self.size_min_spin.setMinimum(0)
+        self.size_min_spin.setMaximum(9999999)
+        self.size_min_spin.setValue(0)
+        self.size_min_spin.setFixedWidth(100)
+        self.size_min_spin.setSpecialValueText("-")
+
+        self._label_size_max = QLabel(i18n.tr("filter_size_max"))
+        self.size_max_spin = QSpinBox()
+        self.size_max_spin.setMinimum(0)
+        self.size_max_spin.setMaximum(9999999)
+        self.size_max_spin.setValue(0)
+        self.size_max_spin.setFixedWidth(100)
+        self.size_max_spin.setSpecialValueText("-")
+
+        size_row = QHBoxLayout()
+        size_row.addWidget(self._label_size_min)
+        size_row.addWidget(self.size_min_spin)
+        size_row.addSpacing(16)
+        size_row.addWidget(self._label_size_max)
+        size_row.addWidget(self.size_max_spin)
+        size_row.addStretch()
+        layout.addLayout(size_row, 1, 0, 1, 4)
+
+        self._label_date_from = QLabel(i18n.tr("filter_date_from"))
+        self.date_from_edit = QDateEdit()
+        self.date_from_edit.setCalendarPopup(True)
+        self.date_from_edit.setDate(QDate(2000, 1, 1))
+        self.date_from_edit.setDisplayFormat("yyyy-MM-dd")
+        self.date_from_edit.setFixedWidth(130)
+
+        self._label_date_to = QLabel(i18n.tr("filter_date_to"))
+        self.date_to_edit = QDateEdit()
+        self.date_to_edit.setCalendarPopup(True)
+        self.date_to_edit.setDate(QDate.currentDate())
+        self.date_to_edit.setDisplayFormat("yyyy-MM-dd")
+        self.date_to_edit.setFixedWidth(130)
+
+        date_row = QHBoxLayout()
+        date_row.addWidget(self._label_date_from)
+        date_row.addWidget(self.date_from_edit)
+        date_row.addSpacing(16)
+        date_row.addWidget(self._label_date_to)
+        date_row.addWidget(self.date_to_edit)
+        date_row.addStretch()
+        layout.addLayout(date_row, 2, 0, 1, 4)
+
+        btn_row = QHBoxLayout()
+        self.btn_apply = QPushButton(i18n.tr("filter_apply"))
+        self.btn_apply.setFixedHeight(30)
+        self.btn_apply.setMinimumWidth(90)
+        self.btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_clear = QPushButton(i18n.tr("filter_clear"))
+        self.btn_clear.setFixedHeight(30)
+        self.btn_clear.setMinimumWidth(90)
+        self.btn_clear.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_row.addStretch()
+        btn_row.addWidget(self.btn_apply)
+        btn_row.addWidget(self.btn_clear)
+        layout.addLayout(btn_row, 3, 0, 1, 4)
+
+        self.btn_apply.clicked.connect(self._on_apply)
+        self.btn_clear.clicked.connect(self._on_clear)
+
+    def _on_apply(self):
+        self.filter_changed.emit()
+
+    def _on_clear(self):
+        self.ext_edit.clear()
+        self.size_min_spin.setValue(0)
+        self.size_max_spin.setValue(0)
+        self.date_from_edit.setDate(QDate(2000, 1, 1))
+        self.date_to_edit.setDate(QDate.currentDate())
+        self.filter_changed.emit()
+
+    def get_extension_filter(self) -> list:
+        text = self.ext_edit.text().strip()
+        if not text:
+            return []
+        exts = [e.strip().lower() for e in text.split(",") if e.strip()]
+        result = []
+        for ext in exts:
+            if not ext.startswith("."):
+                ext = "." + ext
+            result.append(ext)
+        return result
+
+    def get_size_range(self) -> tuple:
+        min_kb = self.size_min_spin.value()
+        max_kb = self.size_max_spin.value()
+        return (min_kb, max_kb)
+
+    def get_date_range(self) -> tuple:
+        from_date = self.date_from_edit.date()
+        to_date = self.date_to_edit.date()
+        return (from_date, to_date)
+
+    def has_active_filter(self) -> bool:
+        if self.ext_edit.text().strip():
+            return True
+        if self.size_min_spin.value() > 0 or self.size_max_spin.value() > 0:
+            return True
+        if self.date_from_edit.date() != QDate(2000, 1, 1):
+            return True
+        if self.date_to_edit.date() != QDate.currentDate():
+            return True
+        return False
+
+    def _retranslate(self):
+        i18n = I18n.instance()
+        self.setTitle(i18n.tr("filter_title"))
+        self._label_ext.setText(i18n.tr("filter_extension"))
+        self.ext_edit.setPlaceholderText(i18n.tr("filter_extension_placeholder"))
+        self._label_size_min.setText(i18n.tr("filter_size_min"))
+        self._label_size_max.setText(i18n.tr("filter_size_max"))
+        self._label_date_from.setText(i18n.tr("filter_date_from"))
+        self._label_date_to.setText(i18n.tr("filter_date_to"))
+        self.btn_apply.setText(i18n.tr("filter_apply"))
+        self.btn_clear.setText(i18n.tr("filter_clear"))
 
 
 class RenameModePanel(QGroupBox):
@@ -506,14 +705,18 @@ class RenameModePanel(QGroupBox):
 
 class PreviewTable(QGroupBox):
     selection_changed = pyqtSignal(int)
+    name_manually_edited = pyqtSignal(int, str)
 
     def __init__(self):
         super().__init__(I18n.instance().tr("preview"))
         self.table = QTableWidget()
         self._show_folder_column = False
+        self._manual_edits = {}
+        self._editing_enabled = True
         self._setup_table()
         self._setup_layout()
         self.table.itemChanged.connect(self._on_item_changed)
+        self.table.cellDoubleClicked.connect(self._on_cell_double_clicked)
         I18n.instance().language_changed.connect(self._retranslate)
 
     def _setup_table(self):
@@ -533,7 +736,7 @@ class PreviewTable(QGroupBox):
         self.table.setColumnWidth(3, 80)
         self.table.setColumnHidden(4, True)
         self.table.setAlternatingRowColors(True)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
     def set_show_folder_column(self, show: bool):
@@ -553,6 +756,10 @@ class PreviewTable(QGroupBox):
         toolbar.addWidget(self.btn_select_all)
         toolbar.addWidget(self.btn_deselect_all)
         toolbar.addStretch()
+        self._edit_hint_label = QLabel(I18n.instance().tr("edit_name_hint"))
+        self._edit_hint_label.setObjectName("hint_label")
+        self._edit_hint_label.setStyleSheet("color: #888; font-size: 11px;")
+        toolbar.addWidget(self._edit_hint_label)
 
         self.btn_select_all.clicked.connect(lambda: self.set_all_checked(True))
         self.btn_deselect_all.clicked.connect(lambda: self.set_all_checked(False))
@@ -563,6 +770,32 @@ class PreviewTable(QGroupBox):
     def _on_item_changed(self, item):
         if item.column() == 0:
             self.selection_changed.emit(self.get_checked_count())
+        elif item.column() == 2 and self._editing_enabled:
+            row = item.row()
+            new_text = item.text().strip()
+            if new_text and new_text != "—":
+                self._manual_edits[row] = new_text
+                self.name_manually_edited.emit(row, new_text)
+
+    def _on_cell_double_clicked(self, row, column):
+        if column == 2:
+            check_item = self.table.item(row, 0)
+            if check_item and check_item.checkState() == Qt.CheckState.Checked:
+                item = self.table.item(row, 2)
+                if item:
+                    self.table.editItem(item)
+
+    def get_manual_edits(self) -> dict:
+        return self._manual_edits.copy()
+
+    def clear_manual_edits(self):
+        self._manual_edits = {}
+
+    def has_manual_edit(self, row: int) -> bool:
+        return row in self._manual_edits
+
+    def get_manual_edit(self, row: int) -> str:
+        return self._manual_edits.get(row, "")
 
     def get_checked_indices(self) -> list:
         indices = []
@@ -588,6 +821,7 @@ class PreviewTable(QGroupBox):
     def update_preview(self, file_list: list, generate_new_name_func,
                        checked_indices: set = None, rel_paths: list = None):
         i18n = I18n.instance()
+        self._editing_enabled = False
         self.table.blockSignals(True)
         self.table.setRowCount(len(file_list))
 
@@ -609,9 +843,13 @@ class PreviewTable(QGroupBox):
             item_old = QTableWidgetItem(filename)
 
             if i in checked_indices:
-                new_name = generate_new_name_func(filename, seq_index)
+                if i in self._manual_edits:
+                    new_name = self._manual_edits[i]
+                else:
+                    new_name = generate_new_name_func(filename, seq_index)
                 seq_index += 1
                 item_new = QTableWidgetItem(new_name)
+                item_new.setFlags(item_new.flags() | Qt.ItemFlag.ItemIsEditable)
 
                 if new_name in seen_names:
                     status = i18n.tr("status_conflict")
@@ -629,6 +867,12 @@ class PreviewTable(QGroupBox):
                     item_status = QTableWidgetItem(status)
                     item_status.setForeground(QColor("#2e7d32"))
 
+                if i in self._manual_edits:
+                    item_new.setForeground(QColor("#1565c0"))
+                    font = item_new.font()
+                    font.setBold(True)
+                    item_new.setFont(font)
+
                 seen_names[new_name] = seen_names.get(new_name, 0) + 1
                 item_new.setBackground(color)
                 item_status.setBackground(color)
@@ -640,6 +884,7 @@ class PreviewTable(QGroupBox):
                 item_status.setForeground(QColor("#999999"))
                 item_new.setBackground(color)
                 item_status.setBackground(color)
+                item_new.setFlags(item_new.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
             item_old.setBackground(QColor("#ffffff"))
             item_status.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -657,12 +902,14 @@ class PreviewTable(QGroupBox):
             self.table.setItem(i, 4, item_folder)
 
         self.table.blockSignals(False)
+        self._editing_enabled = True
 
     def _retranslate(self):
         i18n = I18n.instance()
         self.setTitle(i18n.tr("preview"))
         self.btn_select_all.setText(i18n.tr("select_all"))
         self.btn_deselect_all.setText(i18n.tr("deselect_all"))
+        self._edit_hint_label.setText(i18n.tr("edit_name_hint"))
         self.table.setHorizontalHeaderLabels([
             i18n.tr("col_select"), i18n.tr("col_original"),
             i18n.tr("col_new"), i18n.tr("col_status"), i18n.tr("col_folder")

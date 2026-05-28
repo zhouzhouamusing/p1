@@ -194,6 +194,20 @@ _ZH_CN = {
     "export_done_msg": "对照表已导出到：\n{path}",
     "export_no_data": "没有可导出的数据，请先选择文件夹并设置重命名规则",
 
+    "filter_title": "🔍 文件过滤器",
+    "filter_extension": "扩展名:",
+    "filter_extension_placeholder": "如: .jpg,.png,.txt（多个用逗号分隔）",
+    "filter_size_min": "最小大小(KB):",
+    "filter_size_max": "最大大小(KB):",
+    "filter_date_from": "修改日期从:",
+    "filter_date_to": "修改日期到:",
+    "filter_apply": "应用过滤",
+    "filter_clear": "清除过滤",
+    "filter_active": "过滤条件生效中（显示 {shown}/{total} 个文件）",
+    "drag_hint": "📥 拖拽文件或文件夹到此处添加",
+    "drag_drop_loaded": "已通过拖拽加载 {count} 个文件",
+    "edit_name_hint": "双击新文件名列可手动编辑",
+
     "guide_title": "操作指南",
     "guide_content": (
         "1. 点击「浏览」选择包含目标文件的文件夹\n"
@@ -412,6 +426,20 @@ _ZH_TW = {
     "export_done_msg": "對照表已匯出到：\n{path}",
     "export_no_data": "沒有可匯出的資料，請先選擇資料夾並設定重新命名規則",
 
+    "filter_title": "🔍 檔案過濾器",
+    "filter_extension": "副檔名:",
+    "filter_extension_placeholder": "如: .jpg,.png,.txt（多個用逗號分隔）",
+    "filter_size_min": "最小大小(KB):",
+    "filter_size_max": "最大大小(KB):",
+    "filter_date_from": "修改日期從:",
+    "filter_date_to": "修改日期到:",
+    "filter_apply": "套用過濾",
+    "filter_clear": "清除過濾",
+    "filter_active": "過濾條件生效中（顯示 {shown}/{total} 個檔案）",
+    "drag_hint": "📥 拖曳檔案或資料夾到此處新增",
+    "drag_drop_loaded": "已透過拖曳載入 {count} 個檔案",
+    "edit_name_hint": "雙擊新檔名列可手動編輯",
+
     "guide_title": "操作指南",
     "guide_content": (
         "1. 點擊「瀏覽」選擇包含目標檔案的資料夾\n"
@@ -629,6 +657,20 @@ _EN_US = {
     "export_done": "Export Complete",
     "export_done_msg": "Mapping exported to:\n{path}",
     "export_no_data": "No data to export. Select a folder and configure rename rules first.",
+
+    "filter_title": "🔍 File Filter",
+    "filter_extension": "Extensions:",
+    "filter_extension_placeholder": "e.g.: .jpg,.png,.txt (comma separated)",
+    "filter_size_min": "Min size (KB):",
+    "filter_size_max": "Max size (KB):",
+    "filter_date_from": "Modified from:",
+    "filter_date_to": "Modified to:",
+    "filter_apply": "Apply Filter",
+    "filter_clear": "Clear Filter",
+    "filter_active": "Filter active ({shown}/{total} files shown)",
+    "drag_hint": "📥 Drag files or folders here to add",
+    "drag_drop_loaded": "Loaded {count} files via drag & drop",
+    "edit_name_hint": "Double-click New Name column to edit",
 
     "guide_title": "User Guide",
     "guide_content": (

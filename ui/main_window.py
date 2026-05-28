@@ -1,15 +1,17 @@
 import os
 import json
 import shutil
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QFileDialog,
     QStatusBar, QLabel, QScrollArea
 )
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import QTimer, Qt, QDate
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from ui.widgets import (
     FolderSelector, RenameModePanel, PreviewTable,
     ActionButtons, StyledDialog, OutputLocationSelector,
-    PreviewDialog
+    PreviewDialog, FileFilterPanel
 )
 from ui.navbar import NavBar
 from utils.renamer import Renamer
@@ -22,9 +24,12 @@ class BatchRenamerWindow(QMainWindow):
         super().__init__()
         self.file_list = []
         self.file_rel_paths = []
+        self._all_files = []
+        self._all_rel_paths = []
         self.current_folder = ""
         self.renamer = Renamer()
         self.history = RenameHistory()
+        self.setAcceptDrops(True)
         self.init_ui()
         I18n.instance().language_changed.connect(self._retranslate)
 
@@ -60,12 +65,22 @@ class BatchRenamerWindow(QMainWindow):
 
     def _setup_widgets(self, layout):
         self.folder_selector = FolderSelector()
+        self.file_filter = FileFilterPanel()
         self.mode_panel = RenameModePanel()
         self.output_location = OutputLocationSelector()
         self.preview_table = PreviewTable()
         self.action_buttons = ActionButtons()
 
+        self.drag_hint_label = QLabel(I18n.instance().tr("drag_hint"))
+        self.drag_hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.drag_hint_label.setStyleSheet(
+            "QLabel { color: #888; font-size: 12px; padding: 6px; "
+            "border: 2px dashed #ccc; border-radius: 6px; margin: 0 0 4px 0; }"
+        )
+
         layout.addWidget(self.folder_selector)
+        layout.addWidget(self.drag_hint_label)
+        layout.addWidget(self.file_filter)
         layout.addWidget(self.mode_panel)
         layout.addWidget(self.output_location)
         layout.addWidget(self.preview_table)
@@ -85,6 +100,7 @@ class BatchRenamerWindow(QMainWindow):
     def _connect_signals(self):
         self.folder_selector.browse_btn.clicked.connect(self.select_folder)
         self.folder_selector.include_subfolders_changed.connect(self._on_subfolders_changed)
+        self.file_filter.filter_changed.connect(self._apply_filter)
         self.action_buttons.btn_refresh.clicked.connect(self.load_files)
         self.action_buttons.btn_execute.clicked.connect(self.execute_rename)
         self.action_buttons.btn_undo.clicked.connect(self.undo_rename)
@@ -223,8 +239,8 @@ class BatchRenamerWindow(QMainWindow):
         if not self.current_folder:
             return
         i18n = I18n.instance()
-        self.file_list = []
-        self.file_rel_paths = []
+        self._all_files = []
+        self._all_rel_paths = []
         include_sub = self.folder_selector.is_include_subfolders()
 
         try:
@@ -234,28 +250,141 @@ class BatchRenamerWindow(QMainWindow):
                     if rel_dir == ".":
                         rel_dir = ""
                     for f in sorted(files):
-                        self.file_list.append(f)
-                        self.file_rel_paths.append(rel_dir)
+                        self._all_files.append(f)
+                        self._all_rel_paths.append(rel_dir)
             else:
                 for entry in sorted(os.listdir(self.current_folder)):
                     full_path = os.path.join(self.current_folder, entry)
                     if os.path.isfile(full_path):
-                        self.file_list.append(entry)
-                        self.file_rel_paths.append("")
+                        self._all_files.append(entry)
+                        self._all_rel_paths.append("")
         except PermissionError:
             StyledDialog.show_warning(self, i18n.tr("permission_error"), i18n.tr("permission_error_msg"))
             return
 
-        self.file_count_label.setText(
-            i18n.tr("file_count", total=len(self.file_list), selected=len(self.file_list))
-        )
-        if include_sub:
-            self.status_label.setText(i18n.tr("loaded_files_with_sub", count=len(self.file_list)))
+        self.preview_table.clear_manual_edits()
+        self._apply_filter()
+
+    def _apply_filter(self):
+        i18n = I18n.instance()
+        ext_filter = self.file_filter.get_extension_filter()
+        size_min, size_max = self.file_filter.get_size_range()
+        date_from, date_to = self.file_filter.get_date_range()
+
+        self.file_list = []
+        self.file_rel_paths = []
+
+        for i, filename in enumerate(self._all_files):
+            rel_path = self._all_rel_paths[i]
+            file_folder = os.path.join(self.current_folder, rel_path) if rel_path else self.current_folder
+            full_path = os.path.join(file_folder, filename)
+
+            if ext_filter:
+                _, ext = os.path.splitext(filename)
+                if ext.lower() not in ext_filter:
+                    continue
+
+            if size_min > 0 or size_max > 0:
+                try:
+                    file_size_kb = os.path.getsize(full_path) / 1024.0
+                except OSError:
+                    continue
+                if size_min > 0 and file_size_kb < size_min:
+                    continue
+                if size_max > 0 and file_size_kb > size_max:
+                    continue
+
+            if date_from != QDate(2000, 1, 1) or date_to != QDate.currentDate():
+                try:
+                    mtime = os.path.getmtime(full_path)
+                    file_date = QDate.fromString(
+                        datetime.fromtimestamp(mtime).strftime("%Y-%m-%d"), "yyyy-MM-dd"
+                    )
+                except OSError:
+                    continue
+                if file_date < date_from or file_date > date_to:
+                    continue
+
+            self.file_list.append(filename)
+            self.file_rel_paths.append(rel_path)
+
+        total = len(self._all_files)
+        shown = len(self.file_list)
+
+        if self.file_filter.has_active_filter() and total != shown:
+            self.status_label.setText(i18n.tr("filter_active", shown=shown, total=total))
         else:
-            self.status_label.setText(i18n.tr("loaded_files", count=len(self.file_list)))
+            include_sub = self.folder_selector.is_include_subfolders()
+            if include_sub:
+                self.status_label.setText(i18n.tr("loaded_files_with_sub", count=shown))
+            else:
+                self.status_label.setText(i18n.tr("loaded_files", count=shown))
+
+        self.file_count_label.setText(
+            i18n.tr("file_count", total=shown, selected=shown)
+        )
         self.mode_panel.set_direct_input_available(len(self.file_list) == 1)
         self.renamer.set_folder_path(self.current_folder)
         self.update_preview()
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+
+        i18n = I18n.instance()
+        files_to_add = []
+        folder_path = None
+
+        for url in urls:
+            path = url.toLocalFile()
+            if os.path.isdir(path):
+                folder_path = path
+                break
+            elif os.path.isfile(path):
+                files_to_add.append(path)
+
+        if folder_path:
+            self.current_folder = folder_path
+            self.folder_selector.set_folder_path(folder_path)
+            self.load_files()
+            return
+
+        if files_to_add:
+            common_folder = os.path.dirname(files_to_add[0])
+            all_same_folder = all(
+                os.path.dirname(f) == common_folder for f in files_to_add
+            )
+
+            if all_same_folder:
+                self.current_folder = common_folder
+                self.folder_selector.set_folder_path(common_folder)
+
+            self._all_files = []
+            self._all_rel_paths = []
+            for f in files_to_add:
+                self._all_files.append(os.path.basename(f))
+                if all_same_folder:
+                    self._all_rel_paths.append("")
+                else:
+                    self._all_rel_paths.append(os.path.dirname(f))
+
+            self.preview_table.clear_manual_edits()
+            self.file_list = self._all_files[:]
+            self.file_rel_paths = self._all_rel_paths[:]
+
+            self.file_count_label.setText(
+                i18n.tr("file_count", total=len(self.file_list), selected=len(self.file_list))
+            )
+            self.status_label.setText(i18n.tr("drag_drop_loaded", count=len(self.file_list)))
+            self.mode_panel.set_direct_input_available(len(self.file_list) == 1)
+            if self.current_folder:
+                self.renamer.set_folder_path(self.current_folder)
+            self.update_preview()
 
     def update_preview(self):
         self._update_renamer_settings()
@@ -295,6 +424,7 @@ class BatchRenamerWindow(QMainWindow):
             return
 
         self._update_renamer_settings()
+        manual_edits = self.preview_table.get_manual_edits()
         rename_map = []
         seq_index = 0
         for i in checked_indices:
@@ -304,7 +434,10 @@ class BatchRenamerWindow(QMainWindow):
                 self.renamer.set_folder_path(folder)
             else:
                 self.renamer.set_folder_path(self.current_folder)
-            new_name = self.renamer.generate_new_name(filename, seq_index)
+            if i in manual_edits:
+                new_name = manual_edits[i]
+            else:
+                new_name = self.renamer.generate_new_name(filename, seq_index)
             seq_index += 1
             if new_name != filename:
                 display_old = filename
@@ -342,6 +475,7 @@ class BatchRenamerWindow(QMainWindow):
         seen_names = set()
         conflicts = 0
         skipped = 0
+        manual_edits = self.preview_table.get_manual_edits()
 
         seq_index = 0
         for i in checked_indices:
@@ -349,7 +483,10 @@ class BatchRenamerWindow(QMainWindow):
             rel_path = self.file_rel_paths[i] if self.file_rel_paths else ""
             file_folder = os.path.join(self.current_folder, rel_path) if rel_path else self.current_folder
             self.renamer.set_folder_path(file_folder)
-            new_name = self.renamer.generate_new_name(filename, seq_index)
+            if i in manual_edits:
+                new_name = manual_edits[i]
+            else:
+                new_name = self.renamer.generate_new_name(filename, seq_index)
             seq_index += 1
             if new_name == filename and not use_custom_output:
                 skipped += 1
@@ -536,17 +673,21 @@ class BatchRenamerWindow(QMainWindow):
         if not checked_indices:
             checked_indices = list(range(len(self.file_list)))
 
+        manual_edits = self.preview_table.get_manual_edits()
         lines = []
         seq_index = 0
         for i in checked_indices:
             filename = self.file_list[i]
             rel_path = self.file_rel_paths[i] if self.file_rel_paths else ""
-            if rel_path:
-                folder = os.path.join(self.current_folder, rel_path)
-                self.renamer.set_folder_path(folder)
+            if i in manual_edits:
+                new_name = manual_edits[i]
             else:
-                self.renamer.set_folder_path(self.current_folder)
-            new_name = self.renamer.generate_new_name(filename, seq_index)
+                if rel_path:
+                    folder = os.path.join(self.current_folder, rel_path)
+                    self.renamer.set_folder_path(folder)
+                else:
+                    self.renamer.set_folder_path(self.current_folder)
+                new_name = self.renamer.generate_new_name(filename, seq_index)
             seq_index += 1
             lines.append(f"{filename}\t{new_name}")
 
@@ -563,12 +704,15 @@ class BatchRenamerWindow(QMainWindow):
                 for i in checked_indices:
                     filename = self.file_list[i]
                     rel_path = self.file_rel_paths[i] if self.file_rel_paths else ""
-                    if rel_path:
-                        folder = os.path.join(self.current_folder, rel_path)
-                        self.renamer.set_folder_path(folder)
+                    if i in manual_edits:
+                        new_name = manual_edits[i]
                     else:
-                        self.renamer.set_folder_path(self.current_folder)
-                    new_name = self.renamer.generate_new_name(filename, seq_index)
+                        if rel_path:
+                            folder = os.path.join(self.current_folder, rel_path)
+                            self.renamer.set_folder_path(folder)
+                        else:
+                            self.renamer.set_folder_path(self.current_folder)
+                        new_name = self.renamer.generate_new_name(filename, seq_index)
                     seq_index += 1
                     f.write(f"{filename}{sep}{new_name}\n")
             StyledDialog.show_success(self, i18n.tr("export_done"),
@@ -587,4 +731,5 @@ class BatchRenamerWindow(QMainWindow):
         self.setWindowTitle(i18n.tr("app_title"))
         self.status_label.setText(i18n.tr("status_ready_msg"))
         self.file_count_label.setText(i18n.tr("file_count_zero"))
+        self.drag_hint_label.setText(i18n.tr("drag_hint"))
         self._update_undo_buttons()
